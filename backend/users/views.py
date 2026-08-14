@@ -1,0 +1,11 @@
+from rest_framework import generics
+from rest_framework.permissions import AllowAny
+
+from .serializers import RegisterSerializer
+
+
+class RegisterView(generics.CreateAPIView):
+    """Creates an account for an ERP user."""
+
+    serializer_class = RegisterSerializer
+    permission_classes = [AllowAny]

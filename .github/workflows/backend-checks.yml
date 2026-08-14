@@ -1,0 +1,26 @@
+name: Backend checks
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+jobs:
+  django:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install dependencies
+        run: python -m pip install -r backend/requirements.txt
+      - name: Validate Django configuration
+        working-directory: backend
+        run: python manage.py check
+      - name: Run tests
+        working-directory: backend
+        run: python manage.py test
