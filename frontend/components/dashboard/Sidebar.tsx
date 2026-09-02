@@ -1,12 +1,13 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   ClipboardList,
   UtensilsCrossed,
   Package,
-  Truck,
-  PackagePlus,
-  PackageMinus,
-  BarChart3,
+  Smartphone,
   Bot,
   Settings,
   ChefHat,
@@ -14,19 +15,18 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard, active: true },
-  { label: "Pedidos", icon: ClipboardList, active: false },
-  { label: "Cardápio", icon: UtensilsCrossed, active: false },
-  { label: "Estoque", icon: Package, active: false },
-  { label: "Fornecedores", icon: Truck, active: false },
-  { label: "Entradas", icon: PackagePlus, active: false },
-  { label: "Saídas", icon: PackageMinus, active: false },
-  { label: "Relatórios", icon: BarChart3, active: false },
-  { label: "Automação (RPA)", icon: Bot, active: false },
-  { label: "Configurações", icon: Settings, active: false },
+  { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Pedidos (PDV)", href: "/orders", icon: ClipboardList },
+  { label: "Cardápio / Catálogo", href: "/catalog", icon: UtensilsCrossed },
+  { label: "Estoque", href: "/inventory", icon: Package },
+  { label: "App do Cliente (Mobile)", href: "/app", icon: Smartphone, highlight: true },
+  { label: "Automação (RPA)", href: "/rpa", icon: Bot },
+  { label: "Configurações", href: "/settings", icon: Settings },
 ];
 
 export function Sidebar() {
+  const pathname = usePathname();
+
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-zinc-800/60 bg-zinc-900">
       <div className="flex items-center gap-3 border-b border-zinc-800/60 px-5 py-5">
@@ -42,31 +42,44 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {navItems.map(({ label, icon: Icon, active }) => (
-          <a
-            key={label}
-            href="#"
-            aria-current={active ? "page" : undefined}
-            className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-              active
-                ? "border-l-2 border-yellow-400 bg-zinc-950/80 text-yellow-400"
-                : "border-l-2 border-transparent text-zinc-400 hover:bg-zinc-950/60 hover:text-zinc-100"
-            }`}
-          >
-            <Icon
-              className={`h-[18px] w-[18px] shrink-0 ${
-                active
-                  ? "text-yellow-400"
-                  : "text-zinc-500 transition-colors group-hover:text-zinc-300"
+        {navItems.map(({ label, href, icon: Icon, highlight }) => {
+          const isActive = pathname === href;
+          return (
+            <Link
+              key={label}
+              href={href}
+              className={`group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all ${
+                isActive
+                  ? "border-l-4 border-yellow-400 bg-zinc-950 text-yellow-400 font-semibold shadow-inner"
+                  : highlight
+                  ? "border-l-4 border-transparent text-amber-300 hover:bg-amber-400/10 hover:text-amber-200"
+                  : "border-l-4 border-transparent text-zinc-400 hover:bg-zinc-950/60 hover:text-zinc-100"
               }`}
-            />
-            <span>{label}</span>
-          </a>
-        ))}
+            >
+              <div className="flex items-center gap-3">
+                <Icon
+                  className={`h-4 w-4 shrink-0 ${
+                    isActive
+                      ? "text-yellow-400"
+                      : highlight
+                      ? "text-amber-400"
+                      : "text-zinc-500 transition-colors group-hover:text-zinc-300"
+                  }`}
+                />
+                <span>{label}</span>
+              </div>
+              {highlight && (
+                <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-bold text-amber-400">
+                  App
+                </span>
+              )}
+            </Link>
+          );
+        })}
       </nav>
 
       <div className="border-t border-zinc-800/60 p-4">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
               Status do RPA
@@ -74,30 +87,31 @@ export function Sidebar() {
             <Zap className="h-4 w-4 text-yellow-400" />
           </div>
 
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-2.5 flex items-center gap-2">
             <span className="relative flex h-2.5 w-2.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-60" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-400" />
             </span>
-            <span className="text-sm font-semibold text-green-400">Ativo</span>
+            <span className="text-sm font-semibold text-green-400">Ativo & Operacional</span>
           </div>
 
-          <dl className="mt-3 space-y-1.5 text-xs">
+          <dl className="mt-2.5 space-y-1 text-xs">
             <div className="flex justify-between">
               <dt className="text-zinc-500">Última execução</dt>
-              <dd className="text-zinc-300">12/05/2025 10:15</dd>
+              <dd className="text-zinc-300 font-medium">Hoje às 10:15</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-zinc-500">Próxima execução</dt>
-              <dd className="text-zinc-300">12/05/2025 10:45</dd>
+              <dd className="text-zinc-300 font-medium">Hoje às 10:45</dd>
             </div>
           </dl>
 
           <button
             type="button"
-            className="mt-4 w-full rounded-lg border border-yellow-400/70 px-3 py-2 text-xs font-semibold text-yellow-400 transition-all hover:bg-yellow-400/10 hover:shadow-lg hover:shadow-yellow-400/10"
+            onClick={() => alert("Robô RPA disparado com sucesso! Sincronizando notas e pedidos...")}
+            className="mt-3 w-full rounded-xl border border-yellow-400/60 bg-yellow-400/10 px-3 py-2 text-xs font-semibold text-yellow-400 transition-all hover:bg-yellow-400 hover:text-zinc-950 hover:shadow-lg hover:shadow-yellow-400/20"
           >
-            Executar agora
+            Executar RPA agora
           </button>
         </div>
       </div>

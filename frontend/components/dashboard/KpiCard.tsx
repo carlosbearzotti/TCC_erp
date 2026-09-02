@@ -1,12 +1,24 @@
-import type { KpiCardData } from "@/lib/kpi-data";
+import React from "react";
+
+export interface KpiCardProps {
+  title: string;
+  value: string;
+  icon: React.ComponentType<{ className?: string }>;
+  iconClassName?: string;
+  footer?: {
+    text: string;
+    className?: string;
+    href?: string;
+  };
+}
 
 export function KpiCard({
   title,
   value,
   icon: Icon,
-  iconClassName,
+  iconClassName = "text-yellow-400",
   footer,
-}: KpiCardData) {
+}: KpiCardProps) {
   return (
     <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900 p-5 transition-colors hover:border-zinc-700">
       <div className="flex items-center gap-4">
@@ -20,17 +32,19 @@ export function KpiCard({
         {value}
       </p>
 
-      {footer.href ? (
-        <a
-          href={footer.href}
-          className={`mt-1 block text-xs font-medium ${footer.className}`}
-        >
-          {footer.text}
-        </a>
-      ) : (
-        <p className={`mt-1 text-xs font-medium ${footer.className}`}>
-          {footer.text}
-        </p>
+      {footer && (
+        footer.href ? (
+          <a
+            href={footer.href}
+            className={`mt-1 block text-xs font-medium ${footer.className || "text-zinc-500"}`}
+          >
+            {footer.text}
+          </a>
+        ) : (
+          <p className={`mt-1 text-xs font-medium ${footer.className || "text-zinc-500"}`}>
+            {footer.text}
+          </p>
+        )
       )}
     </div>
   );

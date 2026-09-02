@@ -1,5 +1,6 @@
 "use client";
 
+import useSWR from "swr";
 import {
   Area,
   AreaChart,
@@ -9,34 +10,86 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { chartData, dailyReportKpis } from "@/lib/mock-data";
+import { fetcher } from "@/services/api";
+
+interface Order {
+  id: number
+  total: string | number
+  status: string
+  created_at: string
+}
 
 export function DailyReport() {
+  const { data: orders, isLoading } = useSWR<Order[]>("/orders/", fetcher);
+
+  const validOrders = (orders || []).filter((o) => o.status !== "cancelado");
+
+  const totalRevenue = validOrders.reduce((sum, o) => sum + Number(o.total), 0);
+  const totalOrders = validOrders.length;
+  const avgTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+  // Montagem do gráfico diário a partir dos pedidos reais
+  const timeBuckets: Record<string, number> = {
+    "08:00": 0,
+    "10:00": 0,
+    "12:00": 0,
+    "14:00": 0,
+    "16:00": 0,
+    "18:00": 0,
+    "20:00": 0,
+    "22:00": 0,
+  };
+
+  validOrders.forEach((order) => {
+    if (!order.created_at) return;
+    const hour = new Date(order.created_at).getHours();
+    if (hour < 10) timeBuckets["08:00"] += Number(order.total);
+    else if (hour < 12) timeBuckets["10:00"] += Number(order.total);
+    else if (hour < 14) timeBuckets["12:00"] += Number(order.total);
+    else if (hour < 16) timeBuckets["14:00"] += Number(order.total);
+    else if (hour < 18) timeBuckets["16:00"] += Number(order.total);
+    else if (hour < 20) timeBuckets["18:00"] += Number(order.total);
+    else if (hour < 22) timeBuckets["20:00"] += Number(order.total);
+    else timeBuckets["22:00"] += Number(order.total);
+  });
+
+  const chartData = Object.entries(timeBuckets).map(([time, value]) => ({
+    time,
+    value,
+  }));
+
+  const todayStr = new Date().toLocaleDateString("pt-BR");
+
   return (
     <section className="rounded-2xl border border-zinc-800/60 bg-zinc-900">
       <div className="flex flex-wrap items-center justify-between gap-4 px-5 pt-5">
         <h2 className="text-base font-semibold text-zinc-100">
-          Relatório Diário
+          Relatório Financeiro Diário
         </h2>
-        <span className="text-xs font-medium text-zinc-500">12/05/2025</span>
+        <span className="text-xs font-medium text-zinc-500">{todayStr}</span>
       </div>
 
       <div className="grid grid-cols-1 gap-6 p-5 lg:grid-cols-[240px_1fr]">
         <dl className="grid grid-cols-2 gap-4 lg:grid-cols-1">
-          {dailyReportKpis.map((kpi) => (
-            <div
-              key={kpi.label}
-              className="rounded-xl border border-zinc-800/60 bg-zinc-950/50 px-4 py-3"
-            >
-              <dt className="text-xs text-zinc-500">{kpi.label}</dt>
-              <dd className="mt-1 text-lg font-bold text-zinc-50">
-                {kpi.value}
-              </dd>
-              <dd className="text-xs font-medium text-green-400">
-                {kpi.delta}
-              </dd>
-            </div>
-          ))}
+          <div className="rounded-xl border border-zinc-800/60 bg-zinc-950/50 px-4 py-3">
+            <dt className="text-xs text-zinc-500">Receita Total</dt>
+            <dd className="mt-1 text-lg font-bold text-zinc-50">
+              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totalRevenue)}
+            </dd>
+            <dd className="text-xs font-medium text-green-400">
+              {totalOrders} pedidos realizados
+            </dd>
+          </div>
+
+          <div className="rounded-xl border border-zinc-800/60 bg-zinc-950/50 px-4 py-3">
+            <dt className="text-xs text-zinc-500">Ticket Médio</dt>
+            <dd className="mt-1 text-lg font-bold text-zinc-50">
+              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(avgTicket)}
+            </dd>
+            <dd className="text-xs font-medium text-yellow-400">
+              Média por comanda
+            </dd>
+          </div>
         </dl>
 
         <div className="h-64 w-full">
@@ -64,11 +117,9 @@ export function DailyReport() {
                 tick={{ fill: "#71717a", fontSize: 12 }}
                 axisLine={false}
                 tickLine={false}
-                width={40}
-                domain={[0, 1500]}
-                ticks={[0, 500, 1000, 1500]}
+                width={45}
                 tickFormatter={(value: number) =>
-                  value === 0 ? "0" : value >= 1000 ? `${value / 1000}k` : `${value}`
+                  value === 0 ? "0" : value >= 1000 ? `${(value / 1000).toFixed(0)}k` : `${value}`
                 }
               />
               <Tooltip
@@ -81,7 +132,7 @@ export function DailyReport() {
                 }}
                 labelStyle={{ color: "#a1a1aa" }}
                 cursor={{ stroke: "#3f3f46", strokeDasharray: "3 3" }}
-                formatter={(value: number) => [`R$ ${value.toFixed(2)}`, "Faturamento"]}
+                formatter={(value: number) => [`R$ ${Number(value).toFixed(2)}`, "Faturamento"]}
               />
               <Area
                 type="monotone"
