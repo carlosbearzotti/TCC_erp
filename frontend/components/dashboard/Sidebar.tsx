@@ -19,7 +19,7 @@ const navItems = [
   { label: "Pedidos (PDV)", href: "/orders", icon: ClipboardList },
   { label: "Cardápio / Catálogo", href: "/catalog", icon: UtensilsCrossed },
   { label: "Estoque", href: "/inventory", icon: Package },
-  { label: "App do Cliente (Mobile)", href: "/app", icon: Smartphone, highlight: true },
+  { label: "App do Cliente (Mobile)", href: "/cliente", icon: Smartphone, highlight: true },
   { label: "Automação (RPA)", href: "/rpa", icon: Bot },
   { label: "Configurações", href: "/settings", icon: Settings },
 ];
