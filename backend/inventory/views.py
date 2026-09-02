@@ -8,12 +8,23 @@ from .models import Insumo, Movimentacao, ReceitaItem
 from .serializers import InsumoSerializer, MovimentacaoSerializer, ReceitaItemSerializer
 
 
+from django.db.models import F
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
 class InsumoViewSet(ModelViewSet):
     """Provides authenticated CRUD operations for inventory supplies."""
 
     queryset = Insumo.objects.all()
     serializer_class = InsumoSerializer
     permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=['get'])
+    def alertas(self, request):
+        """Retorna insumos cuja quantidade atual é menor ou igual ao estoque mínimo."""
+        qs = self.get_queryset().filter(quantidade_atual__lte=F('estoque_minimo'))
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
 
 
 class MovimentacaoViewSet(

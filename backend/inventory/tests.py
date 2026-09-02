@@ -273,6 +273,31 @@ class InsumoApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_alertas_endpoint_returns_low_stock_insumos(self):
+        # Insumo with low stock (quantidade_atual <= estoque_minimo)
+        Insumo.objects.create(
+            nome='Sal',
+            unidade_medida='KG',
+            quantidade_atual='0.500',
+            estoque_minimo='1.000',
+        )
+        # Insumo with normal stock
+        Insumo.objects.create(
+            nome='Açúcar',
+            unidade_medida='KG',
+            quantidade_atual='5.000',
+            estoque_minimo='2.000',
+        )
+
+        response = self.client.get('/api/inventory/insumos/alertas/')
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # The default pagination is disabled for actions if we want, but since ModelViewSet paginates...
+        # Wait, if @action doesn't disable pagination, it'll return a paginated response. Let's handle it safely.
+        data = response.data['results'] if 'results' in response.data else response.data
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['nome'], 'Sal')
+
 
 class MovimentacaoApiTests(APITestCase):
     def setUp(self):
