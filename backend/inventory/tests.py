@@ -103,3 +103,75 @@ class InsumoApiTests(APITestCase):
         response = self.client.get('/api/inventory/insumos/')
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class MovimentacaoApiTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='operador', password='senha-segura-123'
+        )
+        self.client.force_authenticate(self.user)
+        self.insumo = Insumo.objects.create(
+            nome='Arroz',
+            unidade_medida='KG',
+            quantidade_atual='10.000',
+            estoque_minimo='2.000',
+        )
+
+    def test_create_entrada_increases_insumo_quantidade(self):
+        payload = {
+            'insumo': self.insumo.id,
+            'tipo': 'ENTRADA',
+            'quantidade': '5.000',
+            'motivo': 'COMPRA',
+        }
+        response = self.client.post('/api/inventory/movimentacoes/', payload, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.insumo.refresh_from_db()
+        self.assertEqual(self.insumo.quantidade_atual, 15.000)
+        self.assertEqual(response.data['responsavel'], self.user.id)
+
+    def test_create_saida_decreases_insumo_quantidade(self):
+        payload = {
+            'insumo': self.insumo.id,
+            'tipo': 'SAIDA',
+            'quantidade': '3.500',
+            'motivo': 'BAIXA',
+        }
+        response = self.client.post('/api/inventory/movimentacoes/', payload, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.insumo.refresh_from_db()
+        self.assertEqual(self.insumo.quantidade_atual, 6.500)
+
+    def test_cannot_create_saida_greater_than_available(self):
+        payload = {
+            'insumo': self.insumo.id,
+            'tipo': 'SAIDA',
+            'quantidade': '15.000',
+            'motivo': 'PERDA',
+        }
+        response = self.client.post('/api/inventory/movimentacoes/', payload, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('quantidade', response.data)
+        self.insumo.refresh_from_db()
+        self.assertEqual(self.insumo.quantidade_atual, 10.000)
+
+    def test_movimentacao_cannot_be_updated_or_deleted(self):
+        # Create a movement to test updates/deletes
+        payload = {
+            'insumo': self.insumo.id,
+            'tipo': 'ENTRADA',
+            'quantidade': '1.000',
+            'motivo': 'AJUSTE',
+        }
+        create_resp = self.client.post('/api/inventory/movimentacoes/', payload, format='json')
+        movimentacao_id = create_resp.data['id']
+
+        put_resp = self.client.put(f'/api/inventory/movimentacoes/{movimentacao_id}/', payload, format='json')
+        delete_resp = self.client.delete(f'/api/inventory/movimentacoes/{movimentacao_id}/')
+
+        self.assertEqual(put_resp.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertEqual(delete_resp.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
