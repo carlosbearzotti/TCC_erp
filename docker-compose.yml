@@ -1,9 +1,8 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15-alpine
     container_name: tcc_erp_db
+    restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -23,6 +22,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: tcc_erp_backend
+    restart: always
     ports:
       - "8000:8000"
     volumes:
@@ -40,11 +40,18 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: tcc_erp_frontend
+    restart: always
+    stdin_open: true
+    tty: true
     ports:
       - "3000:3000"
     volumes:
       - ./frontend:/app
       - /app/node_modules
+      - /app/.next
+    environment:
+      - WATCHPACK_POLLING=true
+      - NEXT_TELEMETRY_DISABLED=1
     depends_on:
       - backend
 
