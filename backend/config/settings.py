@@ -20,12 +20,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-k5_r!n=df2#n(4&+xp@si1#xafq&w1stav)a0=2itu1gqd#o(#'
+SECRET_KEY = 'django-insecure-k=0-!y#a#g@wz+35&s0199$x#)i^!6wz!d-2k=8=1#m_e(6_y&'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'finance',
     'orders',
     'preparation',
+    'inventory',
 ]
 
 MIDDLEWARE = [
