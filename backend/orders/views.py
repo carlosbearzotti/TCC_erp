@@ -9,27 +9,20 @@ from .serializers import PedidoSerializer
 from .services import transicionar_status
 
 
-from rest_framework.permissions import AllowAny
-
 class PedidoListCreateView(generics.ListCreateAPIView):
     """Lista ou cria pedidos, respeitando a visibilidade por perfil."""
 
     serializer_class = PedidoSerializer
     queryset = Pedido.objects.all()
-    permission_classes = [AllowAny]
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        if not self.request.user.is_authenticated:
-            return queryset
         if not is_equipe(self.request.user):
-            return queryset.filter(cliente=self.request.user)
+            queryset = queryset.filter(cliente=self.request.user)
         return queryset
 
     def perform_create(self, serializer):
-        if not self.request.user.is_authenticated:
-            serializer.save(cliente=None)
-        elif is_equipe(self.request.user):
+        if is_equipe(self.request.user):
             serializer.save()
         else:
             serializer.save(cliente=self.request.user)
@@ -40,27 +33,23 @@ class PedidoDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     serializer_class = PedidoSerializer
     queryset = Pedido.objects.all()
-    permission_classes = [AllowAny]
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        if not self.request.user.is_authenticated:
-            return queryset
         if not is_equipe(self.request.user):
-            return queryset.filter(cliente=self.request.user)
+            queryset = queryset.filter(cliente=self.request.user)
         return queryset
 
     def perform_update(self, serializer):
-        if self.request.user.is_authenticated and not is_equipe(self.request.user):
+        if not is_equipe(self.request.user):
             raise PermissionDenied('Apenas a equipe pode alterar pedidos.')
 
         novo_status = serializer.validated_data.get('status')
         if novo_status and novo_status != serializer.instance.status:
-            responsavel = self.request.user if self.request.user.is_authenticated else None
             transicionar_status(
                 serializer.instance,
                 novo_status,
-                responsavel=responsavel,
+                responsavel=self.request.user,
                 motivo=serializer.validated_data.get('cancellation_reason'),
             )
         else:
