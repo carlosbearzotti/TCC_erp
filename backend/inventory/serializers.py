@@ -2,7 +2,7 @@
 
 from rest_framework import serializers
 
-from .models import Insumo, Movimentacao
+from .models import Insumo, Movimentacao, ReceitaItem
 
 
 class InsumoSerializer(serializers.ModelSerializer):
@@ -48,3 +48,22 @@ class MovimentacaoSerializer(serializers.ModelSerializer):
                     {"quantidade": "Quantidade de saída não pode ser maior que o saldo disponível."}
                 )
         return attrs
+
+
+class ReceitaItemSerializer(serializers.ModelSerializer):
+    insumo_nome = serializers.CharField(source='insumo.nome', read_only=True)
+    produto_nome = serializers.CharField(source='produto.nome', read_only=True)
+
+    class Meta:
+        model = ReceitaItem
+        fields = (
+            'id',
+            'produto',
+            'produto_nome',
+            'insumo',
+            'insumo_nome',
+            'quantidade_necessaria',
+            'created_at',
+            'updated_at',
+        )
+        read_only_fields = ('id', 'created_at', 'updated_at')

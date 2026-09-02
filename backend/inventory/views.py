@@ -4,8 +4,8 @@ from rest_framework import mixins
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
-from .models import Insumo, Movimentacao
-from .serializers import InsumoSerializer, MovimentacaoSerializer
+from .models import Insumo, Movimentacao, ReceitaItem
+from .serializers import InsumoSerializer, MovimentacaoSerializer, ReceitaItemSerializer
 
 
 class InsumoViewSet(ModelViewSet):
@@ -33,3 +33,21 @@ class MovimentacaoViewSet(
 
     def perform_create(self, serializer):
         serializer.save(responsavel=self.request.user)
+
+
+class ReceitaItemViewSet(ModelViewSet):
+    """
+    CRUD para itens da ficha tecnica (receita).
+    Permite visualizar, adicionar, atualizar ou remover ingredientes da receita.
+    """
+
+    queryset = ReceitaItem.objects.all()
+    serializer_class = ReceitaItemSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        qs = super().get_queryset()
+        produto_id = self.request.query_params.get('produto')
+        if produto_id:
+            qs = qs.filter(produto_id=produto_id)
+        return qs

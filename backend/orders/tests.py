@@ -355,3 +355,66 @@ class PedidoFinanceIntegrationTests(PedidoBaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['total_receitas'], '15.00')
         self.assertEqual(response.data['saldo'], '15.00')
+
+
+class PedidoEstoqueIntegrationTests(PedidoBaseTestCase):
+    def setUp(self):
+        from inventory.models import Insumo, ReceitaItem
+        
+        self.atendente = self._create_user('atendente_teste', role='atendente')
+        self.product = self._create_product(price='15.00')
+        self.client.force_authenticate(user=self.atendente)
+        
+        # Setup Insumo and Receita
+        self.insumo = Insumo.objects.create(
+            nome='Queijo',
+            unidade_medida='KG',
+            quantidade_atual='2.000',
+            estoque_minimo='1.000',
+        )
+        self.receita_item = ReceitaItem.objects.create(
+            produto=self.product,
+            insumo=self.insumo,
+            quantidade_necessaria='0.500',
+        )
+        
+        created = self.client.post(
+            reverse('orders:pedido_list_create'),
+            self._pedido_payload(self.product, quantity=2),
+            format='json',
+        )
+        self.pedido_id = created.data['id']
+
+    def test_confirmar_pedido_debita_estoque(self):
+        response = self.client.patch(
+            self._pedido_url(self.pedido_id),
+            {'status': 'confirmado'},
+            format='json',
+        )
+        
+        self.assertEqual(response.status_code, 200)
+        self.insumo.refresh_from_db()
+        # 2 quantities * 0.500 = 1.000 used. Started with 2.000. Left: 1.000
+        self.assertEqual(self.insumo.quantidade_atual, 1.000)
+
+    def test_confirmar_pedido_sem_estoque_falha(self):
+        # We try to order 5 units (5 * 0.500 = 2.500 required, but we only have 2.000)
+        created = self.client.post(
+            reverse('orders:pedido_list_create'),
+            self._pedido_payload(self.product, quantity=5),
+            format='json',
+        )
+        pedido_id_2 = created.data['id']
+        
+        response = self.client.patch(
+            self._pedido_url(pedido_id_2),
+            {'status': 'confirmado'},
+            format='json',
+        )
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Estoque insuficiente', str(response.data))
+        
+        self.insumo.refresh_from_db()
+        # Ensure stock wasn't partially debited
+        self.assertEqual(self.insumo.quantidade_atual, 2.000)

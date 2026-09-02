@@ -70,6 +70,9 @@ class Movimentacao(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name='movimentacoes',
+        null=True,
+        blank=True,
+        verbose_name='responsável',
     )
 
     class Meta:
@@ -79,3 +82,38 @@ class Movimentacao(models.Model):
 
     def __str__(self):
         return f'{self.tipo} de {self.quantidade} {self.insumo.get_unidade_medida_display()} - {self.insumo.nome}'
+
+
+class ReceitaItem(models.Model):
+    """
+    Ficha técnica: relaciona um Produto do cardápio aos insumos necessários
+    e suas respectivas quantidades para produção de 1 unidade do produto.
+    """
+
+    produto = models.ForeignKey(
+        'catalog.Produto',
+        on_delete=models.CASCADE,
+        related_name='receita_itens',
+    )
+    insumo = models.ForeignKey(
+        Insumo,
+        on_delete=models.CASCADE,
+        related_name='utilizado_em',
+    )
+    quantidade_necessaria = models.DecimalField(
+        max_digits=10,
+        decimal_places=3,
+        validators=[MinValueValidator(Decimal('0.001'))],
+        help_text="Quantidade do insumo necessária para 1 unidade do produto.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('produto', 'insumo')
+        ordering = ['produto', 'insumo']
+        verbose_name = 'item de receita'
+        verbose_name_plural = 'itens de receita'
+
+    def __str__(self):
+        return f'{self.quantidade_necessaria} {self.insumo.get_unidade_medida_display()} de {self.insumo.nome} para {self.produto.nome}'

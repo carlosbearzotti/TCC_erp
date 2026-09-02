@@ -45,6 +45,48 @@ def recalcular_total(pedido):
     return pedido.total
 
 
+from decimal import Decimal
+
+
+def verificar_estoque(pedido):
+    """Verifica se ha estoque suficiente para todos os itens do pedido."""
+    from inventory.models import Movimentacao
+    from collections import defaultdict
+    
+    insumos_necessarios = defaultdict(Decimal)
+    
+    for item in pedido.itens.select_related('produto').all():
+        for receita_item in item.produto.receita_itens.select_related('insumo').all():
+            insumos_necessarios[receita_item.insumo] += receita_item.quantidade_necessaria * item.quantidade
+            
+    for insumo, qtd in insumos_necessarios.items():
+        if insumo.quantidade_atual < qtd:
+            raise ValidationError(
+                f'Estoque insuficiente para o insumo: {insumo.nome}. '
+                f'Necessario: {qtd}, Disponivel: {insumo.quantidade_atual}'
+            )
+
+def debitar_estoque(pedido, responsavel=None):
+    """Debita do estoque os insumos proporcionais a receita do pedido."""
+    from inventory.models import Movimentacao
+    from collections import defaultdict
+    
+    insumos_necessarios = defaultdict(Decimal)
+    
+    for item in pedido.itens.select_related('produto').all():
+        for receita_item in item.produto.receita_itens.select_related('insumo').all():
+            insumos_necessarios[receita_item.insumo] += receita_item.quantidade_necessaria * item.quantidade
+            
+    for insumo, qtd in insumos_necessarios.items():
+        Movimentacao.objects.create(
+            insumo=insumo,
+            tipo=Movimentacao.Tipo.SAIDA,
+            quantidade=qtd,
+            motivo=Movimentacao.Motivo.BAIXA,
+            responsavel=responsavel
+        )
+
+
 def transicionar_status(pedido, novo_status, responsavel=None, motivo=None):
     """Altera o status do pedido em uma unica transacao.
 
@@ -55,6 +97,9 @@ def transicionar_status(pedido, novo_status, responsavel=None, motivo=None):
 
     status_anterior = pedido.status
 
+    if novo_status == 'confirmado':
+        verificar_estoque(pedido)
+
     with transaction.atomic():
         pedido.status = novo_status
         update_fields = ['status', 'updated_at']
@@ -62,6 +107,7 @@ def transicionar_status(pedido, novo_status, responsavel=None, motivo=None):
         if novo_status == 'confirmado' and pedido.confirmed_at is None:
             pedido.confirmed_at = timezone.now()
             update_fields.append('confirmed_at')
+            debitar_estoque(pedido, responsavel)
 
         if novo_status == 'cancelado':
             pedido.cancelled_at = timezone.now()
