@@ -22,6 +22,8 @@ class CategoriaSerializer(serializers.ModelSerializer):
 
 
 class ProdutoSerializer(serializers.ModelSerializer):
+    categoria_nome = serializers.CharField(source='categoria.nome', read_only=True)
+
     class Meta:
         model = Produto
         fields = (
@@ -30,11 +32,12 @@ class ProdutoSerializer(serializers.ModelSerializer):
             'descricao',
             'preco',
             'categoria',
+            'categoria_nome',
             'disponibilidade',
             'created_at',
             'updated_at',
         )
-        read_only_fields = ('id', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'categoria_nome', 'created_at', 'updated_at')
         extra_kwargs = {
             'preco': {'min_value': Decimal('0.01')},
         }

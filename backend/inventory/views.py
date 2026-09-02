@@ -1,23 +1,20 @@
-"""Inventory API endpoints."""
-
 from rest_framework import mixins
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
 from .models import Insumo, Movimentacao, ReceitaItem
 from .serializers import InsumoSerializer, MovimentacaoSerializer, ReceitaItemSerializer
-
 
 from django.db.models import F
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 class InsumoViewSet(ModelViewSet):
-    """Provides authenticated CRUD operations for inventory supplies."""
+    """Provides CRUD operations for inventory supplies."""
 
     queryset = Insumo.objects.all()
     serializer_class = InsumoSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     @action(detail=False, methods=['get'])
     def alertas(self, request):
@@ -40,10 +37,11 @@ class MovimentacaoViewSet(
 
     queryset = Movimentacao.objects.all()
     serializer_class = MovimentacaoSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def perform_create(self, serializer):
-        serializer.save(responsavel=self.request.user)
+        user = self.request.user if self.request.user.is_authenticated else None
+        serializer.save(responsavel=user)
 
 
 class ReceitaItemViewSet(ModelViewSet):
@@ -54,7 +52,7 @@ class ReceitaItemViewSet(ModelViewSet):
 
     queryset = ReceitaItem.objects.all()
     serializer_class = ReceitaItemSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     
     def get_queryset(self):
         qs = super().get_queryset()
