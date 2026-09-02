@@ -1,26 +1,47 @@
-"""Serializers do catalogo."""
+"""Serializers for catalog API input and output."""
+
+from decimal import Decimal
 
 from rest_framework import serializers
 
-from .models import Product
+from .models import Categoria, Produto
 
 
-class ProductSerializer(serializers.ModelSerializer):
-    """Serializer de produtos do cardapio."""
-
+class CategoriaSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Product
+        model = Categoria
         fields = (
             'id',
-            'name',
-            'price',
-            'is_available',
+            'nome',
+            'descricao',
+            'status',
             'created_at',
             'updated_at',
         )
         read_only_fields = ('id', 'created_at', 'updated_at')
 
-    def validate_price(self, value):
-        if value <= 0:
-            raise serializers.ValidationError('O preco deve ser maior que zero.')
-        return value
+
+class ProdutoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Produto
+        fields = (
+            'id',
+            'nome',
+            'descricao',
+            'preco',
+            'categoria',
+            'disponibilidade',
+            'created_at',
+            'updated_at',
+        )
+        read_only_fields = ('id', 'created_at', 'updated_at')
+        extra_kwargs = {
+            'preco': {'min_value': Decimal('0.01')},
+        }
+
+    def validate_categoria(self, categoria):
+        if not categoria.status:
+            raise serializers.ValidationError(
+                'Não é possível cadastrar ou alterar um produto em uma categoria inativa.'
+            )
+        return categoria

@@ -83,15 +83,15 @@ class PedidoSerializer(serializers.ModelSerializer):
     def _build_itens(self, pedido, itens_data):
         for item in itens_data:
             produto = item['produto']
-            if not produto.is_available:
+            if not produto.disponibilidade:
                 raise serializers.ValidationError(
-                    {'itens': f'Produto indisponivel: {produto.name}.'}
+                    {'itens': f'Produto indisponivel: {produto.nome}.'}
                 )
             ItemPedido.objects.create(
                 pedido=pedido,
                 produto=produto,
                 quantidade=item['quantidade'],
-                preco_unitario=produto.price,
+                preco_unitario=produto.preco,
             )
 
     def create(self, validated_data):

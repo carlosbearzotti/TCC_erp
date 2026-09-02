@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('catalog', '0001_initial'),
+        ('catalog', '0003_produto'),
         ('orders', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
@@ -51,7 +51,7 @@ class Migration(migrations.Migration):
                 ('quantidade', models.PositiveIntegerField(default=1, verbose_name='quantidade')),
                 ('preco_unitario', models.DecimalField(decimal_places=2, max_digits=12, verbose_name='preco unitario')),
                 ('pedido', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='itens', to='orders.pedido', verbose_name='pedido')),
-                ('produto', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='itens_pedido', to='catalog.product', verbose_name='produto')),
+                ('produto', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='itens_pedido', to='catalog.produto', verbose_name='produto')),
             ],
             options={
                 'verbose_name': 'item do pedido',

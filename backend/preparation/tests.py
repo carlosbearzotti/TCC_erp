@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
-from catalog.models import Product
+from catalog.models import Categoria, Produto
 from orders.models import Pedido
 
 from .models import Preparo
@@ -23,8 +23,9 @@ class PreparoBaseTestCase(APITestCase):
         self.cozinheiro = self._create_user('cozinheiro_teste', role='cozinheiro')
         self.atendente = self._create_user('atendente_teste', role='atendente')
         self.cliente = self._create_user('cliente_teste')
-        self.product = Product.objects.create(
-            name='Pastel de carne', price='10.00'
+        self.categoria = Categoria.objects.create(nome='Salgados', status=True)
+        self.product = Produto.objects.create(
+            nome='Pastel de carne', preco='10.00', categoria=self.categoria
         )
 
     def _pedido_payload(self, quantity=1):

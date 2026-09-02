@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
-from catalog.models import Product
+from catalog.models import Categoria, Produto
 from finance.models import Lancamento
 from preparation.models import Preparo
 
@@ -21,8 +21,9 @@ class PedidoBaseTestCase(APITestCase):
         return user
 
     def _create_product(self, name='Pastel de carne', price='10.00', available=True):
-        return Product.objects.create(
-            name=name, price=price, is_available=available
+        categoria, _ = Categoria.objects.get_or_create(nome='Salgados', defaults={'status': True})
+        return Produto.objects.create(
+            nome=name, preco=price, disponibilidade=available, categoria=categoria
         )
 
     def _pedido_payload(self, product, quantity=1):

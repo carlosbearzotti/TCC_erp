@@ -1,10 +1,18 @@
 from django.contrib import admin
 
-from .models import Product
+from .models import Categoria, Produto
 
 
-@admin.register(Product)
-class ProductAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'price', 'is_available')
-    list_filter = ('is_available',)
-    search_fields = ('name',)
+@admin.register(Categoria)
+class CategoriaAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'status', 'created_at', 'updated_at')
+    list_filter = ('status',)
+    search_fields = ('nome',)
+
+
+@admin.register(Produto)
+class ProdutoAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'preco', 'categoria', 'disponibilidade')
+    list_filter = ('disponibilidade', 'categoria')
+    search_fields = ('nome',)
+    list_select_related = ('categoria',)

@@ -1,20 +1,23 @@
-"""Views do catalogo."""
+"""Catalog endpoints."""
 
-from rest_framework import generics
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.viewsets import ModelViewSet
 
-from .models import Product
-from .serializers import ProductSerializer
-
-
-class ProductListCreateView(generics.ListCreateAPIView):
-    """Lista ou cria produtos do cardapio."""
-
-    serializer_class = ProductSerializer
-    queryset = Product.objects.all()
+from .models import Categoria, Produto
+from .serializers import CategoriaSerializer, ProdutoSerializer
 
 
-class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Consulta, altera ou exclui um produto."""
+class CategoriaViewSet(ModelViewSet):
+    """Provides authenticated CRUD operations for catalog categories."""
 
-    serializer_class = ProductSerializer
-    queryset = Product.objects.all()
+    queryset = Categoria.objects.all()
+    serializer_class = CategoriaSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class ProdutoViewSet(ModelViewSet):
+    """Provides authenticated CRUD operations for products."""
+
+    queryset = Produto.objects.select_related('categoria').all()
+    serializer_class = ProdutoSerializer
+    permission_classes = [IsAuthenticated]

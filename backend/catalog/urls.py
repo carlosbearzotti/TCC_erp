@@ -1,12 +1,11 @@
-"""URLs do modulo de catalogo."""
+"""Catalog API routes."""
 
-from django.urls import path
+from rest_framework.routers import DefaultRouter
 
-from .views import ProductDetailView, ProductListCreateView
+from .views import CategoriaViewSet, ProdutoViewSet
 
-app_name = 'catalog'
+router = DefaultRouter()
+router.register('categorias', CategoriaViewSet, basename='categoria')
+router.register('produtos', ProdutoViewSet, basename='produto')
 
-urlpatterns = [
-    path('products/', ProductListCreateView.as_view(), name='product_list_create'),
-    path('products/<int:pk>/', ProductDetailView.as_view(), name='product_detail'),
-]
+urlpatterns = router.urls

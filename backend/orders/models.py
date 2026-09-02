@@ -84,7 +84,7 @@ class ItemPedido(models.Model):
         verbose_name='pedido',
     )
     produto = models.ForeignKey(
-        'catalog.Product',
+        'catalog.Produto',
         on_delete=models.PROTECT,
         related_name='itens_pedido',
         verbose_name='produto',
@@ -104,4 +104,4 @@ class ItemPedido(models.Model):
         return self.preco_unitario * self.quantidade
 
     def __str__(self):
-        return f'{self.produto.name} x{self.quantidade}'
+        return f'{self.produto.nome} x{self.quantidade}'
