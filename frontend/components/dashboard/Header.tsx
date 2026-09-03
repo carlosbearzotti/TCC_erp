@@ -28,9 +28,20 @@ interface Order {
   created_at: string;
 }
 
+interface TurnoResponse {
+  ativo: boolean;
+  turno: {
+    id: number;
+    inicio: string;
+    duracao_minutos: number;
+    saldo_dinheiro: string | number;
+  } | null;
+}
+
 export function Header() {
   const [currentDateStr, setCurrentDateStr] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
+  const [loadingTurno, setLoadingTurno] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Sincroniza a data do sistema
@@ -44,9 +55,41 @@ export function Header() {
     setCurrentDateStr(formatted);
   }, []);
 
-  // Busca dados reais para notificações
+  // Busca dados reais para notificações e turno ativo
   const { data: insumos } = useSWR<Insumo[]>("/inventory/insumos/", fetcher);
   const { data: orders } = useSWR<Order[]>("/orders/", fetcher);
+  const { data: turnoData, mutate: mutateTurno } = useSWR<TurnoResponse>(
+    "/core/turnos/ativo/",
+    fetcher,
+    { refreshInterval: 15000 }
+  );
+
+  const handleCheckin = async () => {
+    try {
+      setLoadingTurno(true);
+      const { api } = await import("@/services/api");
+      await api.post("/core/turnos/checkin/");
+      await mutateTurno();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Erro ao iniciar turno.");
+    } finally {
+      setLoadingTurno(false);
+    }
+  };
+
+  const handleCheckout = async () => {
+    if (!confirm("Deseja realmente encerrar o seu turno agora?")) return;
+    try {
+      setLoadingTurno(true);
+      const { api } = await import("@/services/api");
+      await api.post("/core/turnos/checkout/");
+      await mutateTurno();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Erro ao encerrar turno.");
+    } finally {
+      setLoadingTurno(false);
+    }
+  };
 
   // Filtra notificações reais
   const criticalStockItems = (insumos || []).filter(
@@ -83,6 +126,35 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-3 relative">
+        {/* Controle de Ponto / Turno de Trabalho */}
+        {turnoData?.ativo ? (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/40 px-3 py-2 text-xs font-semibold text-emerald-400 shadow-sm">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+              </span>
+              <span>Turno Ativo ({turnoData.turno?.duracao_minutos || 0}m)</span>
+            </div>
+            <button
+              onClick={handleCheckout}
+              disabled={loadingTurno}
+              className="rounded-xl border border-red-500/30 bg-red-950/30 px-3 py-2 text-xs font-bold text-red-400 hover:bg-red-900/40 transition-colors"
+            >
+              {loadingTurno ? "Saindo..." : "Encerrar Ponto"}
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleCheckin}
+            disabled={loadingTurno}
+            className="flex items-center gap-2 rounded-xl border border-yellow-400/40 bg-yellow-400/10 px-3.5 py-2 text-xs font-bold text-yellow-400 hover:bg-yellow-400 hover:text-zinc-950 transition-all shadow-sm"
+          >
+            <Clock className="h-3.5 w-3.5" />
+            <span>{loadingTurno ? "Iniciando..." : "Bater Ponto"}</span>
+          </button>
+        )}
+
         {/* Data Real do Sistema */}
         <div className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900 px-3.5 py-2 text-sm font-medium text-zinc-300">
           <CalendarDays className="h-4 w-4 text-yellow-400" />

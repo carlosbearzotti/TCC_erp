@@ -14,6 +14,8 @@ import {
   Zap,
   LogOut,
   Receipt,
+  Users,
+  Bike,
 } from "lucide-react";
 
 const navItems = [
@@ -23,7 +25,9 @@ const navItems = [
   { label: "Cozinha (KDS)", href: "/cozinha", icon: ChefHat },
   { label: "Cardápio / Catálogo", href: "/catalog", icon: UtensilsCrossed },
   { label: "Estoque", href: "/inventory", icon: Package },
+  { label: "Equipe & Auditoria", href: "/equipe", icon: Users },
   { label: "App do Cliente (Mobile)", href: "/cliente", icon: Smartphone, highlight: true },
+  { label: "App do Entregador", href: "/entregador", icon: Bike, highlight: true },
   { label: "Automação (RPA)", href: "/rpa", icon: Bot },
   { label: "Configurações", href: "/settings", icon: Settings },
 ];

@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
+  AlertTriangle,
   Banknote,
   Trash2,
   Plus,
@@ -27,6 +28,7 @@ import {
   DollarSign,
   TrendingUp,
   ShoppingBag,
+  Bike,
 } from "lucide-react"
 import { PaymentModal } from "@/components/orders/PaymentModal"
 
@@ -56,6 +58,11 @@ interface Pedido {
   numero_mesa: string
   numero_comanda: string
   cliente?: number | null
+  entregador?: number | null
+  entregador_nome?: string | null
+  codigo_pin_entrega?: string
+  comprovante_entrega_url?: string
+  motivo_falha_entrega?: string
   itens: ItemPedido[]
   endereco?: Endereco | null
   total: string | number
@@ -83,10 +90,17 @@ export default function GestaoBalcaoPage() {
   const [selectedOrderForDetails, setSelectedOrderForDetails] = useState<Pedido | null>(null)
   const [selectedOrderForEdit, setSelectedOrderForEdit] = useState<Pedido | null>(null)
   const [selectedOrderForCancel, setSelectedOrderForCancel] = useState<Pedido | null>(null)
+  const [selectedOrderForAssign, setSelectedOrderForAssign] = useState<Pedido | null>(null)
   const [cancelReason, setCancelReason] = useState("")
   const [isCloseShiftOpen, setIsCloseShiftOpen] = useState(false)
   const [loadingAction, setLoadingAction] = useState(false)
   const [actionSuccessMessage, setActionSuccessMessage] = useState("")
+
+  // SWR data fetching
+  const { data: entregadoresDisp, mutate: mutateEntregadores } = useSWR<any[]>(
+    "/orders/entregadores-disponiveis/",
+    fetcher
+  )
 
   // SWR data fetching
   const { data: pedidos, error, isLoading, isValidating } = useSWR<Pedido[]>(
@@ -259,6 +273,12 @@ export default function GestaoBalcaoPage() {
             Cancelado
           </span>
         )
+      case "retornando_base":
+        return (
+          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/40 flex items-center gap-1 w-fit animate-pulse">
+            <AlertTriangle className="h-3 w-3" /> Retornando à Base
+          </span>
+        )
       case "arquivado":
         return (
           <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-zinc-800 text-zinc-400">
@@ -281,6 +301,30 @@ export default function GestaoBalcaoPage() {
         <div className="fixed top-6 right-6 z-50 rounded-2xl bg-emerald-500 text-zinc-950 font-bold px-4 py-3 shadow-2xl flex items-center gap-2 animate-in slide-in-from-top duration-300">
           <CheckCircle2 className="h-5 w-5" />
           <span>{actionSuccessMessage}</span>
+        </div>
+      )}
+
+      {/* Alerta Visual de Falha de Entrega (Issue #82) */}
+      {allOrders.filter((o) => o.status === "retornando_base").length > 0 && (
+        <div className="rounded-2xl border-2 border-red-500/60 bg-red-950/40 p-4 shadow-xl shadow-red-950/50 animate-pulse">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-6 w-6 text-red-400 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="text-sm font-extrabold text-red-200">
+                Atenção: {allOrders.filter((o) => o.status === "retornando_base").length} pedido(s) retornando à base por falha na entrega!
+              </h3>
+              <div className="mt-2 space-y-1.5">
+                {allOrders.filter((o) => o.status === "retornando_base").map((ped) => (
+                  <div key={ped.id} className="flex flex-wrap items-center justify-between text-xs text-red-300 bg-red-900/30 rounded-xl px-3 py-2 border border-red-500/30">
+                    <div>
+                      <strong>Pedido #{ped.id}</strong> ({ped.endereco?.logradouro}, {ped.endereco?.numero}) — Motivo: <span className="font-semibold text-white">{ped.motivo_falha_entrega || "Não informado"}</span>
+                    </div>
+                    <span className="text-[11px] text-red-400">Entregador: {ped.entregador_nome || `#${ped.entregador}`}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -508,9 +552,21 @@ export default function GestaoBalcaoPage() {
                           {order.tipo_atendimento}
                         </span>
                         {order.tipo_atendimento === "delivery" && order.endereco && (
-                          <div className="flex items-center gap-1 text-[10px] text-amber-400 mt-0.5" title={`${order.endereco.logradouro}, ${order.endereco.numero}`}>
-                            <MapPin className="h-3 w-3 shrink-0" />
-                            <span className="truncate max-w-[120px]">{order.endereco.bairro}</span>
+                          <div className="flex flex-col gap-0.5 mt-1">
+                            <div className="flex items-center gap-1 text-[10px] text-amber-400" title={`${order.endereco.logradouro}, ${order.endereco.numero}`}>
+                              <MapPin className="h-3 w-3 shrink-0" />
+                              <span className="truncate max-w-[120px]">{order.endereco.bairro}</span>
+                            </div>
+                            {order.entregador_nome ? (
+                              <span className="text-[10px] text-emerald-400 font-semibold">Moto: {order.entregador_nome}</span>
+                            ) : (
+                              <button
+                                onClick={() => setSelectedOrderForAssign(order)}
+                                className="text-[10px] font-bold text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 rounded px-1.5 py-0.5 hover:bg-yellow-400 hover:text-zinc-950 w-fit transition-colors"
+                              >
+                                + Atribuir Moto
+                              </button>
+                            )}
                           </div>
                         )}
                       </td>
@@ -874,6 +930,97 @@ export default function GestaoBalcaoPage() {
                 className="flex-1 h-11 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-black text-xs transition-colors shadow-lg shadow-red-500/20"
               >
                 {loadingAction ? "Arquivando..." : "Sim, Encerrar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Atribuir Entregador (Issues #75 e #78) */}
+      {selectedOrderForAssign && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-3xl bg-zinc-900 border border-zinc-800 p-6 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <Bike className="h-5 w-5 text-yellow-400" />
+                <h3 className="text-base font-bold text-zinc-100">
+                  Despachar Pedido #{selectedOrderForAssign.id}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedOrderForAssign(null)}
+                className="rounded-lg p-1 text-zinc-500 hover:text-zinc-300"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-zinc-400 mb-3">
+              Selecione um entregador próprio disponível (online e dentro do limite simultâneo):
+            </p>
+
+            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+              {(!entregadoresDisp || entregadoresDisp.length === 0) ? (
+                <div className="p-4 text-center text-xs text-zinc-500 border border-dashed border-zinc-800 rounded-2xl">
+                  Nenhum entregador cadastrado no sistema.
+                </div>
+              ) : (
+                entregadoresDisp.map((ent: any) => (
+                  <div
+                    key={ent.id}
+                    className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${
+                      ent.disponivel_para_atribuir
+                        ? "border-zinc-800 bg-zinc-950/60 hover:border-yellow-400/50"
+                        : "border-zinc-900 bg-zinc-950/20 opacity-50"
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-zinc-100">{ent.nome}</span>
+                        <span
+                          className={`h-2 w-2 rounded-full ${
+                            ent.is_online ? "bg-emerald-400 animate-pulse" : "bg-zinc-600"
+                          }`}
+                        />
+                      </div>
+                      <p className="text-[11px] text-zinc-400">
+                        {ent.is_online ? "Online" : "Offline / Em Pausa"} • {ent.entregas_ativas}/{ent.limite_maximo} ativas
+                      </p>
+                    </div>
+
+                    <button
+                      disabled={!ent.disponivel_para_atribuir || loadingAction}
+                      onClick={async () => {
+                        setLoadingAction(true);
+                        try {
+                          await api.post(`/orders/${selectedOrderForAssign.id}/atribuir-entregador/`, {
+                            entregador_id: ent.id,
+                          });
+                          await mutate("/orders/");
+                          await mutateEntregadores();
+                          setSelectedOrderForAssign(null);
+                          showFeedback(`Pedido atribuído ao entregador ${ent.nome} com sucesso!`);
+                        } catch (err: any) {
+                          alert(err.response?.data?.entregador_id || err.response?.data?.detail || "Erro ao atribuir entregador.");
+                        } finally {
+                          setLoadingAction(false);
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-yellow-400 text-zinc-950 font-bold text-xs hover:bg-yellow-300 disabled:opacity-30 disabled:cursor-not-allowed shadow-sm"
+                    >
+                      {loadingAction ? "Atribuindo..." : "Selecionar"}
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="mt-5 flex justify-end">
+              <button
+                onClick={() => setSelectedOrderForAssign(null)}
+                className="px-4 py-2 rounded-xl border border-zinc-700 text-zinc-300 text-xs font-semibold hover:bg-zinc-800"
+              >
+                Fechar
               </button>
             </div>
           </div>
