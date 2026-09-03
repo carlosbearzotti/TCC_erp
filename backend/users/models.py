@@ -9,6 +9,7 @@ class Perfil(models.Model):
         ('cliente', 'Cliente'),
         ('atendente', 'Atendente'),
         ('cozinheiro', 'Cozinheiro'),
+        ('entregador', 'Entregador'),
         ('administrador', 'Administrador'),
     ]
 
@@ -23,6 +24,10 @@ class Perfil(models.Model):
         choices=ROLE_CHOICES,
         default='cliente',
         verbose_name='perfil',
+    )
+    is_online = models.BooleanField(
+        default=False,
+        verbose_name='disponível / online',
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

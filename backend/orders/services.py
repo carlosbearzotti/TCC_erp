@@ -16,8 +16,9 @@ TRANSICOES_VALIDAS = {
     'criado': {'confirmado', 'cancelado'},
     'confirmado': {'em_preparo', 'pronto', 'finalizado', 'cancelado'},
     'em_preparo': {'pronto', 'finalizado', 'cancelado'},
-    'pronto': {'entregue', 'finalizado', 'cancelado'},
+    'pronto': {'entregue', 'retornando_base', 'finalizado', 'cancelado'},
     'entregue': {'finalizado', 'cancelado'},
+    'retornando_base': {'finalizado', 'cancelado'},
     'finalizado': {'arquivado'},
     'cancelado': {'arquivado'},
     'arquivado': set(),
@@ -117,6 +118,18 @@ def transicionar_status(pedido, novo_status, responsavel=None, motivo=None):
             pedido.cancelled_by = responsavel
             pedido.cancellation_reason = motivo or ''
             update_fields.extend(['cancelled_at', 'cancelled_by', 'cancellation_reason'])
+
+            try:
+                from core.services import registrar_auditoria
+                registrar_auditoria(
+                    user=responsavel,
+                    acao='CANCELOU_PEDIDO',
+                    entidade='orders_pedido',
+                    entidade_id=pedido.id,
+                    detalhes=f'Pedido #{pedido.id} cancelado. Motivo: {motivo or "Não informado"}'
+                )
+            except Exception:
+                pass
 
         pedido.save(update_fields=update_fields)
 

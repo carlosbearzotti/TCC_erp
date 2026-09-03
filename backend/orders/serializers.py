@@ -57,8 +57,12 @@ class PedidoSerializer(serializers.ModelSerializer):
         max_digits=14, decimal_places=2, read_only=True
     )
     cliente = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(), required=False
+        queryset=User.objects.all(), required=False, allow_null=True
     )
+    entregador = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), required=False, allow_null=True
+    )
+    entregador_nome = serializers.SerializerMethodField()
 
     class Meta:
         model = Pedido
@@ -69,6 +73,11 @@ class PedidoSerializer(serializers.ModelSerializer):
             'numero_mesa',
             'numero_comanda',
             'cliente',
+            'entregador',
+            'entregador_nome',
+            'codigo_pin_entrega',
+            'comprovante_entrega_url',
+            'motivo_falha_entrega',
             'itens',
             'endereco',
             'total',
@@ -82,6 +91,11 @@ class PedidoSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         )
+
+    def get_entregador_nome(self, obj):
+        if obj.entregador:
+            return f'{obj.entregador.first_name} {obj.entregador.last_name}'.strip() or obj.entregador.username
+        return None
         read_only_fields = (
             'id',
             'confirmed_at',

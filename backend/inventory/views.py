@@ -43,7 +43,18 @@ class MovimentacaoViewSet(
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        serializer.save(responsavel=self.request.user)
+        mov = serializer.save(responsavel=self.request.user)
+        try:
+            from core.services import registrar_auditoria
+            registrar_auditoria(
+                user=self.request.user,
+                acao='EDITOU_ESTOQUE',
+                entidade='inventory_insumo',
+                entidade_id=mov.insumo_id,
+                detalhes=f'Movimentação de estoque: {mov.tipo} de {mov.quantidade} ({mov.motivo}) para o insumo {mov.insumo.nome}'
+            )
+        except Exception:
+            pass
 
 
 class ReceitaItemViewSet(ModelViewSet):

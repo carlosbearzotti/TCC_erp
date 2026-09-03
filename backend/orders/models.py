@@ -17,6 +17,7 @@ class Pedido(models.Model):
         ('entregue', 'Entregue'),
         ('finalizado', 'Finalizado'),
         ('arquivado', 'Arquivado'),
+        ('retornando_base', 'Retornando à base'),
         ('cancelado', 'Cancelado'),
     ]
 
@@ -58,6 +59,31 @@ class Pedido(models.Model):
         blank=True,
         related_name='pedidos',
         verbose_name='cliente',
+    )
+    entregador = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='entregas',
+        verbose_name='entregador',
+    )
+    codigo_pin_entrega = models.CharField(
+        max_length=4,
+        null=True,
+        blank=True,
+        verbose_name='código PIN de entrega',
+    )
+    comprovante_entrega_url = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        verbose_name='comprovante de entrega',
+    )
+    motivo_falha_entrega = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name='motivo da falha de entrega',
     )
     total = models.DecimalField(
         max_digits=12,

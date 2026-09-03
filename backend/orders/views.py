@@ -210,3 +210,149 @@ class OrderRemoveItemView(generics.GenericAPIView):
 
         serializer = self.get_serializer(pedido)
         return Response(serializer.data, status=200)
+
+
+import random
+from django.contrib.auth import get_user_model
+from core.models import Configuracao
+
+User = get_user_model()
+
+
+class MinhasEntregasView(generics.ListAPIView):
+    """Retorna os pedidos atribuídos ao entregador autenticado."""
+
+    serializer_class = PedidoSerializer
+
+    def get_queryset(self):
+        return Pedido.objects.filter(entregador=self.request.user).exclude(
+            status__in=['finalizado', 'arquivado', 'cancelado']
+        ).order_by('-created_at')
+
+
+class AtribuirEntregadorView(generics.GenericAPIView):
+    """Atribui um entregador a um pedido respeitando regras de disponibilidade e limite máximo."""
+
+    queryset = Pedido.objects.all()
+    serializer_class = PedidoSerializer
+
+    def post(self, request, *args, **kwargs):
+        if not is_equipe(request.user):
+            raise PermissionDenied('Apenas atendentes/gerentes podem atribuir entregadores.')
+
+        pedido = self.get_object()
+        entregador_id = request.data.get('entregador_id')
+        if not entregador_id:
+            raise ValidationError({'entregador_id': 'ID do entregador é obrigatório.'})
+
+        try:
+            entregador = User.objects.select_related('perfil').get(id=entregador_id)
+        except User.DoesNotExist:
+            raise ValidationError({'entregador_id': 'Entregador não encontrado.'})
+
+        if not hasattr(entregador, 'perfil') or entregador.perfil.role != 'entregador':
+            raise ValidationError({'entregador_id': 'O usuário selecionado não é um entregador.'})
+
+        if not entregador.perfil.is_online:
+            raise ValidationError({'entregador_id': 'Este entregador está indisponível/offline no momento.'})
+
+        # Verifica limite máximo de pedidos simultâneos
+        cfg_limite = Configuracao.objects.filter(chave='LIMITE_PEDIDOS_ENTREGADOR').first()
+        limite = int(cfg_limite.valor) if cfg_limite and cfg_limite.valor.isdigit() else 4
+
+        entregas_ativas = Pedido.objects.filter(
+            entregador=entregador,
+            status__in=['confirmado', 'em_preparo', 'pronto', 'retornando_base']
+        ).count()
+
+        if entregas_ativas >= limite:
+            raise ValidationError({
+                'entregador_id': f'Entregador atingiu o limite máximo de entregas simultâneas ({limite}).'
+            })
+
+        # Atribui entregador e gera PIN de entrega se não existir
+        pedido.entregador = entregador
+        if not pedido.codigo_pin_entrega:
+            pedido.codigo_pin_entrega = f'{random.randint(1000, 9999)}'
+        pedido.save(update_fields=['entregador', 'codigo_pin_entrega', 'updated_at'])
+
+        return Response(self.get_serializer(pedido).data, status=200)
+
+
+class ConfirmarEntregaView(generics.GenericAPIView):
+    """Finaliza a entrega exigindo método de validação (PIN, Foto ou Assinatura)."""
+
+    queryset = Pedido.objects.all()
+    serializer_class = PedidoSerializer
+
+    def post(self, request, *args, **kwargs):
+        pedido = self.get_object()
+        if pedido.entregador != request.user and not is_equipe(request.user):
+            raise PermissionDenied('Apenas o entregador responsável ou a loja pode confirmar esta entrega.')
+
+        metodo = request.data.get('metodo_validacao', 'pin')
+        pin_informado = str(request.data.get('pin', '')).strip()
+        comprovante_url = request.data.get('comprovante_url')
+
+        if metodo == 'pin':
+            if not pin_informado or pin_informado != pedido.codigo_pin_entrega:
+                raise ValidationError({'pin': 'Código PIN incorreto.'})
+        elif metodo in ('foto', 'assinatura'):
+            if not comprovante_url:
+                raise ValidationError({'comprovante_url': 'O comprovante de entrega é obrigatório.'})
+            pedido.comprovante_entrega_url = comprovante_url
+            pedido.save(update_fields=['comprovante_entrega_url'])
+
+        # Transiciona status para entregue
+        transicionar_status(pedido, 'entregue', responsavel=request.user)
+
+        return Response(self.get_serializer(pedido).data, status=200)
+
+
+class FalhaEntregaView(generics.GenericAPIView):
+    """Registra insucesso na entrega (cliente ausente, etc.) e muda para retornando_base."""
+
+    queryset = Pedido.objects.all()
+    serializer_class = PedidoSerializer
+
+    def post(self, request, *args, **kwargs):
+        pedido = self.get_object()
+        if pedido.entregador != request.user and not is_equipe(request.user):
+            raise PermissionDenied('Apenas o entregador responsável ou a loja pode reportar falha.')
+
+        motivo = request.data.get('motivo')
+        if not motivo:
+            raise ValidationError({'motivo': 'O motivo da falha é obrigatório.'})
+
+        pedido.motivo_falha_entrega = motivo
+        pedido.save(update_fields=['motivo_falha_entrega'])
+
+        transicionar_status(pedido, 'retornando_base', responsavel=request.user, motivo=motivo)
+
+        return Response(self.get_serializer(pedido).data, status=200)
+
+
+class EntregadoresDisponiveisView(generics.GenericAPIView):
+    """Lista entregadores disponíveis para despacho com contagem de pedidos ativos."""
+
+    def get(self, request, *args, **kwargs):
+        cfg_limite = Configuracao.objects.filter(chave='LIMITE_PEDIDOS_ENTREGADOR').first()
+        limite = int(cfg_limite.valor) if cfg_limite and cfg_limite.valor.isdigit() else 4
+
+        entregadores = User.objects.filter(perfil__role='entregador').select_related('perfil')
+        data = []
+        for ent in entregadores:
+            ativas = Pedido.objects.filter(
+                entregador=ent,
+                status__in=['confirmado', 'em_preparo', 'pronto', 'retornando_base']
+            ).count()
+            data.append({
+                'id': ent.id,
+                'nome': f'{ent.first_name} {ent.last_name}'.strip() or ent.username,
+                'username': ent.username,
+                'is_online': ent.perfil.is_online,
+                'entregas_ativas': ativas,
+                'limite_maximo': limite,
+                'disponivel_para_atribuir': ent.perfil.is_online and ativas < limite,
+            })
+        return Response(data, status=200)
