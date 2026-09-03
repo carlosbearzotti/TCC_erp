@@ -1,26 +1,46 @@
 """Serializers do modulo de pedidos."""
 
+import random
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from rest_framework import serializers
 
-from .models import ItemPedido, Pedido
-from .services import validar_transicao
+from .models import EnderecoPedido, ItemPedido, Pedido
+from .services import recalcular_total, validar_transicao
 
 User = get_user_model()
+
+
+class EnderecoPedidoSerializer(serializers.ModelSerializer):
+    """Endereco de entrega vinculado a pedidos do tipo delivery."""
+
+    class Meta:
+        model = EnderecoPedido
+        fields = (
+            'id',
+            'cep',
+            'logradouro',
+            'numero',
+            'complemento',
+            'bairro',
+            'cidade',
+            'uf',
+        )
+        read_only_fields = ('id',)
 
 
 class ItemPedidoSerializer(serializers.ModelSerializer):
     """Item de pedido com preco registrado no momento da venda."""
 
+    produto_nome = serializers.CharField(source='produto.nome', read_only=True)
     subtotal = serializers.DecimalField(
         max_digits=14, decimal_places=2, read_only=True
     )
 
     class Meta:
         model = ItemPedido
-        fields = ('id', 'produto', 'quantidade', 'preco_unitario', 'subtotal')
-        read_only_fields = ('id', 'preco_unitario', 'subtotal')
+        fields = ('id', 'produto', 'produto_nome', 'quantidade', 'preco_unitario', 'subtotal')
+        read_only_fields = ('id', 'produto_nome', 'preco_unitario', 'subtotal')
 
     def validate_quantidade(self, value):
         if value <= 0:
@@ -29,9 +49,10 @@ class ItemPedidoSerializer(serializers.ModelSerializer):
 
 
 class PedidoSerializer(serializers.ModelSerializer):
-    """Serializer de pedidos com itens aninhados e total calculado."""
+    """Serializer de pedidos com itens aninhados, endereco e total calculado."""
 
-    itens = ItemPedidoSerializer(many=True)
+    itens = ItemPedidoSerializer(many=True, required=False)
+    endereco = EnderecoPedidoSerializer(required=False, allow_null=True)
     total = serializers.DecimalField(
         max_digits=14, decimal_places=2, read_only=True
     )
@@ -44,10 +65,16 @@ class PedidoSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'status',
+            'tipo_atendimento',
+            'numero_mesa',
+            'numero_comanda',
             'cliente',
             'itens',
+            'endereco',
             'total',
             'payment_method',
+            'valor_recebido',
+            'troco',
             'confirmed_at',
             'cancelled_at',
             'cancelled_by',
@@ -93,10 +120,26 @@ class PedidoSerializer(serializers.ModelSerializer):
                 quantidade=item['quantidade'],
                 preco_unitario=produto.preco,
             )
+        recalcular_total(pedido)
 
     def create(self, validated_data):
-        itens_data = validated_data.pop('itens')
-        cliente = validated_data.pop('cliente', None) or self.context['request'].user
+        itens_data = validated_data.pop('itens', [])
+        endereco_data = validated_data.pop('endereco', None)
+        request = self.context.get('request')
+        cliente = validated_data.pop('cliente', None)
+        if not cliente and request and hasattr(request, 'user') and request.user.is_authenticated:
+            cliente = request.user
+
+        if not validated_data.get('numero_comanda'):
+            validated_data['numero_comanda'] = f"{random.randint(1000, 9999)}"
+
+        tipo = validated_data.get('tipo_atendimento', 'mesa')
+        if tipo == 'balcao' and not validated_data.get('numero_mesa'):
+            validated_data['numero_mesa'] = 'Balcão'
+        elif tipo == 'delivery' and not validated_data.get('numero_mesa'):
+            validated_data['numero_mesa'] = 'Delivery'
+        elif tipo == 'retirada' and not validated_data.get('numero_mesa'):
+            validated_data['numero_mesa'] = 'Retirada'
 
         if not itens_data:
             raise serializers.ValidationError(
@@ -106,10 +149,13 @@ class PedidoSerializer(serializers.ModelSerializer):
         with transaction.atomic():
             pedido = Pedido.objects.create(cliente=cliente, **validated_data)
             self._build_itens(pedido, itens_data)
+            if endereco_data:
+                EnderecoPedido.objects.create(pedido=pedido, **endereco_data)
         return pedido
 
     def update(self, instance, validated_data):
         itens_data = validated_data.pop('itens', None)
+        endereco_data = validated_data.pop('endereco', None)
 
         with transaction.atomic():
             for attr, value in validated_data.items():
@@ -119,5 +165,10 @@ class PedidoSerializer(serializers.ModelSerializer):
             if itens_data is not None:
                 instance.itens.all().delete()
                 self._build_itens(instance, itens_data)
+
+            if endereco_data is not None:
+                EnderecoPedido.objects.update_or_create(
+                    pedido=instance, defaults=endereco_data
+                )
 
         return instance

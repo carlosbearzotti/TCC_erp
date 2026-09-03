@@ -14,6 +14,7 @@ class Preparo(models.Model):
         ('pendente', 'Pendente'),
         ('em_preparo', 'Em preparo'),
         ('pronto', 'Pronto'),
+        ('entregue', 'Entregue'),
         ('cancelado', 'Cancelado'),
     ]
 

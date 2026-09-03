@@ -14,17 +14,20 @@ logger = logging.getLogger(__name__)
 
 TRANSICOES_VALIDAS = {
     'criado': {'confirmado', 'cancelado'},
-    'confirmado': {'em_preparo', 'cancelado'},
-    'em_preparo': {'pronto', 'cancelado'},
-    'pronto': {'entregue', 'cancelado'},
-    'entregue': set(),
-    'cancelado': set(),
+    'confirmado': {'em_preparo', 'pronto', 'finalizado', 'cancelado'},
+    'em_preparo': {'pronto', 'finalizado', 'cancelado'},
+    'pronto': {'entregue', 'finalizado', 'cancelado'},
+    'entregue': {'finalizado', 'cancelado'},
+    'finalizado': {'arquivado'},
+    'cancelado': {'arquivado'},
+    'arquivado': set(),
 }
 
 STATUS_PREPARO = {
     'em_preparo': 'em_preparo',
     'pronto': 'pronto',
-    'entregue': 'pronto',
+    'entregue': 'entregue',
+    'finalizado': 'entregue',
     'cancelado': 'cancelado',
 }
 
@@ -124,7 +127,7 @@ def transicionar_status(pedido, novo_status, responsavel=None, motivo=None):
         elif novo_status in STATUS_PREPARO:
             Preparo.objects.filter(pedido=pedido).update(status=STATUS_PREPARO[novo_status])
 
-        if novo_status == 'entregue':
+        if novo_status in ('entregue', 'finalizado'):
             from finance.services import criar_receita_para_pedido
 
             criar_receita_para_pedido(pedido, responsavel=responsavel)

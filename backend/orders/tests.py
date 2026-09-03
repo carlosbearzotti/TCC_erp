@@ -418,3 +418,107 @@ class PedidoEstoqueIntegrationTests(PedidoBaseTestCase):
         self.insumo.refresh_from_db()
         # Ensure stock wasn't partially debited
         self.assertEqual(self.insumo.quantidade_atual, 2.000)
+
+
+class PedidoNovasFeaturesTests(PedidoBaseTestCase):
+    def setUp(self):
+        self.atendente = self._create_user('atendente_novas_features', role='atendente')
+        self.product1 = self._create_product(name='X-Salada', price='20.00')
+        self.product2 = self._create_product(name='Refrigerante', price='7.00')
+        self.client.force_authenticate(user=self.atendente)
+
+    def test_criar_pedido_delivery_com_endereco(self):
+        payload = {
+            'tipo_atendimento': 'delivery',
+            'payment_method': 'dinheiro',
+            'itens': [{'produto': self.product1.id, 'quantidade': 1}],
+            'endereco': {
+                'cep': '13083-852',
+                'logradouro': 'Avenida Albert Einstein',
+                'numero': '400',
+                'complemento': 'Bloco B',
+                'bairro': 'Barão Geraldo',
+                'cidade': 'Campinas',
+                'uf': 'SP',
+            }
+        }
+        response = self.client.post(reverse('orders:pedido_list_create'), payload, format='json')
+        self.assertEqual(response.status_code, 201)
+        data = response.data
+        self.assertEqual(data['tipo_atendimento'], 'delivery')
+        self.assertEqual(data['numero_mesa'], 'Delivery')
+        self.assertIsNotNone(data['endereco'])
+        self.assertEqual(data['endereco']['cep'], '13083-852')
+        self.assertEqual(data['endereco']['numero'], '400')
+
+    def test_simulacao_pagamento_dinheiro_com_troco(self):
+        # Cria pedido de R$ 20.00
+        created = self.client.post(
+            reverse('orders:pedido_list_create'),
+            {'payment_method': 'dinheiro', 'itens': [{'produto': self.product1.id, 'quantidade': 1}]},
+            format='json',
+        )
+        pedido_id = created.data['id']
+
+        # Simula pagamento com R$ 50.00 (troco R$ 30.00)
+        pay_url = reverse('orders:pedido_pay', kwargs={'pk': pedido_id})
+        pay_res = self.client.post(pay_url, {
+            'payment_method': 'dinheiro',
+            'valor_recebido': '50.00',
+            'troco': '30.00',
+        }, format='json')
+
+        self.assertEqual(pay_res.status_code, 200)
+        self.assertEqual(pay_res.data['status'], 'finalizado')
+        self.assertEqual(float(pay_res.data['valor_recebido']), 50.00)
+        self.assertEqual(float(pay_res.data['troco']), 30.00)
+
+        # Verifica criacao automatica de receita financeira
+        from finance.models import Lancamento
+        lancamento = Lancamento.objects.filter(pedido_id=pedido_id).first()
+        self.assertIsNotNone(lancamento)
+        self.assertEqual(lancamento.type, 'receita')
+        self.assertEqual(lancamento.value, 20.00)
+        self.assertEqual(lancamento.payment_method, 'dinheiro')
+
+    def test_adicionar_e_remover_itens_pedido(self):
+        created = self.client.post(
+            reverse('orders:pedido_list_create'),
+            {'itens': [{'produto': self.product1.id, 'quantidade': 1}]},
+            format='json',
+        )
+        pedido_id = created.data['id']
+        self.assertEqual(float(created.data['total']), 20.00)
+
+        # Adiciona refrigerante (+ R$ 7.00)
+        add_url = reverse('orders:pedido_add_item', kwargs={'pk': pedido_id})
+        res_add = self.client.post(add_url, {'produto': self.product2.id, 'quantidade': 1}, format='json')
+        self.assertEqual(res_add.status_code, 200)
+        self.assertEqual(float(res_add.data['total']), 27.00)
+        self.assertEqual(len(res_add.data['itens']), 2)
+
+        # Remove o refrigerante
+        item_refri = [i for i in res_add.data['itens'] if i['produto'] == self.product2.id][0]
+        rem_url = reverse('orders:pedido_remove_item', kwargs={'pk': pedido_id})
+        res_rem = self.client.post(rem_url, {'item_id': item_refri['id']}, format='json')
+        self.assertEqual(res_rem.status_code, 200)
+        self.assertEqual(float(res_rem.data['total']), 20.00)
+
+    def test_encerrar_expediente(self):
+        # Cria pedido e finaliza
+        created = self.client.post(
+            reverse('orders:pedido_list_create'),
+            {'itens': [{'produto': self.product1.id, 'quantidade': 1}]},
+            format='json',
+        )
+        pedido_id = created.data['id']
+        self.client.post(reverse('orders:pedido_pay', kwargs={'pk': pedido_id}), {'payment_method': 'pix'})
+
+        # Encerra expediente
+        close_res = self.client.post(reverse('orders:orders_close_shift'), format='json')
+        self.assertEqual(close_res.status_code, 200)
+        self.assertGreaterEqual(close_res.data['arquivados'], 1)
+
+        # Pedido deve estar com status 'arquivado'
+        detail_res = self.client.get(reverse('orders:pedido_detail', kwargs={'pk': pedido_id}))
+        self.assertEqual(detail_res.data['status'], 'arquivado')

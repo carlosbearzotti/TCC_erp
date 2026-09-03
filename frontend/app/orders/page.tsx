@@ -40,9 +40,44 @@ export default function OrdersPOS() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [search, setSearch] = useState("")
   const [paymentMethod, setPaymentMethod] = useState<"dinheiro" | "cartao_debito" | "cartao_credito" | "pix">("dinheiro")
+  const [tipoAtendimento, setTipoAtendimento] = useState<"mesa" | "balcao" | "delivery" | "retirada">("mesa")
+  const [numeroMesa, setNumeroMesa] = useState("")
+  const [valorRecebido, setValorRecebido] = useState<string>("")
   const [loadingCheckout, setLoadingCheckout] = useState(false)
   const [successOrder, setSuccessOrder] = useState<any | null>(null)
   const [errorMessage, setErrorMessage] = useState("")
+
+  // Delivery address state
+  const [cep, setCep] = useState("")
+  const [logradouro, setLogradouro] = useState("")
+  const [numero, setNumero] = useState("")
+  const [complemento, setComplemento] = useState("")
+  const [bairro, setBairro] = useState("")
+  const [cidade, setCidade] = useState("")
+  const [uf, setUf] = useState("")
+  const [loadingCep, setLoadingCep] = useState(false)
+
+  const handleBuscarCep = async (cepInput: string) => {
+    const raw = cepInput.replace(/\D/g, "")
+    setCep(cepInput)
+    if (raw.length === 8) {
+      setLoadingCep(true)
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${raw}/json/`)
+        const data = await res.json()
+        if (!data.erro) {
+          setLogradouro(data.logradouro || "")
+          setBairro(data.bairro || "")
+          setCidade(data.localidade || "")
+          setUf(data.uf || "")
+        }
+      } catch (err) {
+        console.warn("Falha ao consultar ViaCEP:", err)
+      } finally {
+        setLoadingCep(false)
+      }
+    }
+  }
 
   const { data: produtos, error, isLoading, isValidating } = useSWR<Produto[]>(
     "/catalog/produtos/",
@@ -89,21 +124,56 @@ export default function OrdersPOS() {
   }
 
   const total = cart.reduce((acc, item) => acc + item.price * item.quantity, 0)
+  const numValorRecebido = parseFloat(valorRecebido.replace(",", ".")) || 0
+  const trocoCalculado = paymentMethod === "dinheiro" ? Math.max(0, numValorRecebido - total) : 0
 
   const handleCheckout = async () => {
     if (cart.length === 0) return
+
+    if (tipoAtendimento === "mesa" && !numeroMesa.trim()) {
+      setErrorMessage("Por favor, informe o número da mesa para continuar.")
+      return
+    }
+
+    if (tipoAtendimento === "delivery") {
+      if (!cep.trim() || !logradouro.trim() || !numero.trim() || !bairro.trim() || !cidade.trim() || !uf.trim()) {
+        setErrorMessage("Por favor, preencha os campos obrigatórios do endereço de entrega.")
+        return
+      }
+    }
+
+    if (paymentMethod === "dinheiro" && valorRecebido && numValorRecebido < total) {
+      setErrorMessage(`Valor recebido (R$ ${numValorRecebido.toFixed(2)}) é menor que o total (R$ ${total.toFixed(2)}).`)
+      return
+    }
 
     setLoadingCheckout(true)
     setErrorMessage("")
 
     try {
-      const payload = {
+      const payload: any = {
         status: "criado",
+        tipo_atendimento: tipoAtendimento,
+        numero_mesa: tipoAtendimento === "mesa" ? numeroMesa.trim() : (tipoAtendimento === "balcao" ? "Balcão" : tipoAtendimento.charAt(0).toUpperCase() + tipoAtendimento.slice(1)),
         payment_method: paymentMethod,
+        valor_recebido: paymentMethod === "dinheiro" ? (numValorRecebido || total) : total,
+        troco: paymentMethod === "dinheiro" ? trocoCalculado : 0,
         itens: cart.map((item) => ({
           produto: item.id,
           quantidade: item.quantity,
         })),
+      }
+
+      if (tipoAtendimento === "delivery") {
+        payload.endereco = {
+          cep,
+          logradouro,
+          numero,
+          complemento,
+          bairro,
+          cidade,
+          uf,
+        }
       }
 
       const res = await api.post("/orders/", payload)
@@ -122,6 +192,7 @@ export default function OrdersPOS() {
       mutate("/inventory/insumos/")
       mutate("/catalog/produtos/")
       setCart([])
+      setValorRecebido("")
     } catch (err: any) {
       console.error("Erro ao finalizar pedido:", err)
       setErrorMessage(
@@ -292,6 +363,146 @@ export default function OrdersPOS() {
             </span>
           </div>
 
+          {/* Atendimento: Mesa x Balcão */}
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+              Atendimento / Identificação
+            </label>
+            <div className="grid grid-cols-2 gap-1.5 mb-2">
+              <button
+                type="button"
+                className={`flex items-center justify-center p-2 rounded-xl text-xs font-bold border transition-colors ${
+                  tipoAtendimento === "mesa"
+                    ? "bg-yellow-400 text-zinc-950 border-yellow-400"
+                    : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800"
+                }`}
+                onClick={() => setTipoAtendimento("mesa")}
+              >
+                Mesa
+              </button>
+              <button
+                type="button"
+                className={`flex items-center justify-center p-2 rounded-xl text-xs font-bold border transition-colors ${
+                  tipoAtendimento === "balcao"
+                    ? "bg-yellow-400 text-zinc-950 border-yellow-400"
+                    : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800"
+                }`}
+                onClick={() => {
+                  setTipoAtendimento("balcao")
+                  setNumeroMesa("")
+                }}
+              >
+                Balcão
+              </button>
+              <button
+                type="button"
+                className={`flex items-center justify-center p-2 rounded-xl text-xs font-bold border transition-colors ${
+                  tipoAtendimento === "delivery"
+                    ? "bg-yellow-400 text-zinc-950 border-yellow-400"
+                    : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800"
+                }`}
+                onClick={() => setTipoAtendimento("delivery")}
+              >
+                Delivery
+              </button>
+              <button
+                type="button"
+                className={`flex items-center justify-center p-2 rounded-xl text-xs font-bold border transition-colors ${
+                  tipoAtendimento === "retirada"
+                    ? "bg-yellow-400 text-zinc-950 border-yellow-400"
+                    : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800"
+                }`}
+                onClick={() => setTipoAtendimento("retirada")}
+              >
+                Retirada
+              </button>
+            </div>
+
+            {tipoAtendimento === "mesa" && (
+              <div className="animate-in fade-in duration-200">
+                <Input
+                  required
+                  placeholder="Número da Mesa (ex: Mesa 04)"
+                  value={numeroMesa}
+                  onChange={(e) => setNumeroMesa(e.target.value)}
+                  className="h-9 text-xs bg-zinc-950 border-zinc-800 placeholder:text-zinc-600 focus-visible:border-yellow-400"
+                />
+              </div>
+            )}
+
+            {tipoAtendimento === "delivery" && (
+              <div className="rounded-2xl bg-zinc-950/80 border border-zinc-800/80 p-3 space-y-2 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between text-[11px] font-bold text-yellow-400">
+                  <span>Endereço de Entrega</span>
+                  {loadingCep && (
+                    <span className="text-zinc-400 font-normal flex items-center gap-1">
+                      <RefreshCw className="h-3 w-3 animate-spin text-yellow-400" /> Buscando CEP...
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <Input
+                    placeholder="CEP (ex: 13083-852)"
+                    value={cep}
+                    onChange={(e) => handleBuscarCep(e.target.value)}
+                    className="h-8 text-xs bg-zinc-900 border-zinc-800 placeholder:text-zinc-600 focus-visible:border-yellow-400"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  <div className="col-span-2">
+                    <Input
+                      placeholder="Rua / Logradouro"
+                      value={logradouro}
+                      onChange={(e) => setLogradouro(e.target.value)}
+                      className="h-8 text-xs bg-zinc-900 border-zinc-800 placeholder:text-zinc-600"
+                    />
+                  </div>
+                  <div>
+                    <Input
+                      placeholder="Nº"
+                      value={numero}
+                      onChange={(e) => setNumero(e.target.value)}
+                      className="h-8 text-xs bg-zinc-900 border-zinc-800 placeholder:text-zinc-600"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <Input
+                    placeholder="Complemento"
+                    value={complemento}
+                    onChange={(e) => setComplemento(e.target.value)}
+                    className="h-8 text-xs bg-zinc-900 border-zinc-800 placeholder:text-zinc-600"
+                  />
+                  <Input
+                    placeholder="Bairro"
+                    value={bairro}
+                    onChange={(e) => setBairro(e.target.value)}
+                    className="h-8 text-xs bg-zinc-900 border-zinc-800 placeholder:text-zinc-600"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  <div className="col-span-2">
+                    <Input
+                      placeholder="Cidade"
+                      value={cidade}
+                      onChange={(e) => setCidade(e.target.value)}
+                      className="h-8 text-xs bg-zinc-900 border-zinc-800 placeholder:text-zinc-600"
+                    />
+                  </div>
+                  <div>
+                    <Input
+                      placeholder="UF"
+                      maxLength={2}
+                      value={uf}
+                      onChange={(e) => setUf(e.target.value.toUpperCase())}
+                      className="h-8 text-xs bg-zinc-900 border-zinc-800 placeholder:text-zinc-600 uppercase"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div>
             <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
               Forma de Pagamento
@@ -345,6 +556,49 @@ export default function OrdersPOS() {
                 <CreditCard className="mr-1.5 h-3.5 w-3.5" /> Crédito
               </button>
             </div>
+
+            {paymentMethod === "dinheiro" && (
+              <div className="rounded-2xl bg-zinc-950/80 border border-zinc-800/80 p-3 space-y-2 mt-2 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                    Valor Recebido em Dinheiro (R$)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setValorRecebido(total.toFixed(2))}
+                    className="text-[10px] text-yellow-400 hover:underline font-semibold"
+                  >
+                    Valor Exato
+                  </button>
+                </div>
+                <Input
+                  type="number"
+                  step="0.50"
+                  min="0"
+                  placeholder={`Total: R$ ${total.toFixed(2)}`}
+                  value={valorRecebido}
+                  onChange={(e) => setValorRecebido(e.target.value)}
+                  className="h-8 text-xs bg-zinc-900 border-zinc-800 font-bold text-zinc-100 placeholder:text-zinc-600"
+                />
+                <div className="flex justify-between items-center text-xs pt-0.5">
+                  <span className="text-zinc-400 text-[11px]">Troco calculado:</span>
+                  <span
+                    className={`font-black ${
+                      numValorRecebido > 0 && numValorRecebido < total
+                        ? "text-red-400"
+                        : "text-emerald-400"
+                    }`}
+                  >
+                    {numValorRecebido > 0 && numValorRecebido < total
+                      ? "Insuficiente"
+                      : new Intl.NumberFormat("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        }).format(trocoCalculado)}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           <button 
@@ -375,7 +629,33 @@ export default function OrdersPOS() {
             <p className="text-xs text-zinc-400 mt-0.5">
               Pedido <span className="font-bold text-yellow-400">#{successOrder.id}</span> confirmado no sistema.
             </p>
-            <div className="mt-4 rounded-2xl bg-zinc-950 border border-zinc-800 p-3.5 text-xs space-y-1.5 text-zinc-400">
+
+            {/* Destaque Comanda & Mesa */}
+            <div className="my-3 py-2.5 px-3 rounded-2xl bg-yellow-400/10 border border-yellow-400/30 flex items-center justify-around">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-yellow-500/80 block">Comanda</span>
+                <span className="text-xl font-black text-yellow-400">
+                  #{successOrder.numero_comanda || "0000"}
+                </span>
+              </div>
+              <div className="h-8 w-[1px] bg-zinc-800" />
+              <div>
+                <span className="text-[10px] uppercase font-bold text-yellow-500/80 block">Atendimento</span>
+                <span className="text-base font-black text-zinc-100">
+                  {successOrder.numero_mesa || "Balcão"}
+                </span>
+              </div>
+            </div>
+
+            {successOrder.endereco && (
+              <div className="mb-2 p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-left text-[11px] text-zinc-300">
+                <span className="font-bold text-yellow-400 block mb-0.5">Endereço de Entrega:</span>
+                <p>{successOrder.endereco.logradouro}, {successOrder.endereco.numero} {successOrder.endereco.complemento ? `- ${successOrder.endereco.complemento}` : ""}</p>
+                <p className="text-zinc-400">{successOrder.endereco.bairro} • {successOrder.endereco.cidade}/{successOrder.endereco.uf} (CEP: {successOrder.endereco.cep})</p>
+              </div>
+            )}
+
+            <div className="mt-3 rounded-2xl bg-zinc-950 border border-zinc-800 p-3.5 text-xs space-y-1.5 text-zinc-400">
               <div className="flex justify-between">
                 <span>Total:</span>
                 <span className="font-extrabold text-yellow-400 text-sm">
@@ -384,15 +664,34 @@ export default function OrdersPOS() {
               </div>
               <div className="flex justify-between">
                 <span>Forma de Pagamento:</span>
-                <span className="font-semibold text-zinc-200 capitalize">{successOrder.payment_method || paymentMethod}</span>
+                <span className="font-semibold text-zinc-200 capitalize">{successOrder.payment_method?.replace("_", " ") || paymentMethod}</span>
               </div>
+              {successOrder.payment_method === "dinheiro" && Number(successOrder.troco) > 0 && (
+                <div className="flex justify-between text-emerald-400 font-bold border-t border-zinc-800/80 pt-1.5">
+                  <span>Troco a Devolver:</span>
+                  <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(successOrder.troco))}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span>Status:</span>
                 <span className="font-semibold text-green-400 capitalize">{successOrder.status}</span>
               </div>
             </div>
             <div className="mt-5">
-              <Button className="w-full h-11" onClick={() => setSuccessOrder(null)}>
+              <Button
+                className="w-full h-11"
+                onClick={() => {
+                  setSuccessOrder(null)
+                  setNumeroMesa("")
+                  setCep("")
+                  setLogradouro("")
+                  setNumero("")
+                  setComplemento("")
+                  setBairro("")
+                  setCidade("")
+                  setUf("")
+                }}
+              >
                 Novo Pedido
               </Button>
             </div>

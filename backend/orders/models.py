@@ -15,7 +15,16 @@ class Pedido(models.Model):
         ('em_preparo', 'Em preparo'),
         ('pronto', 'Pronto'),
         ('entregue', 'Entregue'),
+        ('finalizado', 'Finalizado'),
+        ('arquivado', 'Arquivado'),
         ('cancelado', 'Cancelado'),
+    ]
+
+    TIPO_ATENDIMENTO_CHOICES = [
+        ('mesa', 'Mesa'),
+        ('balcao', 'Balcão'),
+        ('delivery', 'Delivery'),
+        ('retirada', 'Retirada'),
     ]
 
     status = models.CharField(
@@ -23,6 +32,24 @@ class Pedido(models.Model):
         choices=STATUS_CHOICES,
         default='criado',
         verbose_name='status',
+    )
+    tipo_atendimento = models.CharField(
+        max_length=20,
+        choices=TIPO_ATENDIMENTO_CHOICES,
+        default='mesa',
+        verbose_name='tipo de atendimento',
+    )
+    numero_mesa = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        verbose_name='número da mesa',
+    )
+    numero_comanda = models.CharField(
+        max_length=10,
+        blank=True,
+        default='',
+        verbose_name='número da comanda',
     )
     cliente = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -44,6 +71,22 @@ class Pedido(models.Model):
         blank=True,
         default='outros',
         verbose_name='forma de pagamento',
+    )
+    valor_recebido = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        default=0.00,
+        verbose_name='valor recebido',
+    )
+    troco = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        default=0.00,
+        verbose_name='troco',
     )
     confirmed_at = models.DateTimeField(
         null=True, blank=True, verbose_name='confirmado em'
@@ -72,6 +115,33 @@ class Pedido(models.Model):
 
     def __str__(self):
         return f'Pedido #{self.id} - {self.get_status_display()}'
+
+
+class EnderecoPedido(models.Model):
+    """Endereco de entrega vinculado a pedidos do tipo delivery."""
+
+    pedido = models.OneToOneField(
+        Pedido,
+        on_delete=models.CASCADE,
+        related_name='endereco',
+        verbose_name='pedido',
+    )
+    cep = models.CharField(max_length=10, verbose_name='CEP')
+    logradouro = models.CharField(max_length=150, verbose_name='logradouro / rua')
+    numero = models.CharField(max_length=20, verbose_name='número')
+    complemento = models.CharField(
+        max_length=100, blank=True, default='', verbose_name='complemento'
+    )
+    bairro = models.CharField(max_length=100, verbose_name='bairro')
+    cidade = models.CharField(max_length=100, verbose_name='cidade')
+    uf = models.CharField(max_length=2, verbose_name='UF')
+
+    class Meta:
+        verbose_name = 'endereço do pedido'
+        verbose_name_plural = 'endereços dos pedidos'
+
+    def __str__(self):
+        return f'{self.logradouro}, {self.numero} - {self.bairro}, {self.cidade}/{self.uf}'
 
 
 class ItemPedido(models.Model):

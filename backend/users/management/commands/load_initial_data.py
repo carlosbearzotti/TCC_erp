@@ -21,7 +21,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(f'Superusuário "{admin_username}" já existe.'))
 
         # Criar categorias padrão
-        categorias = ['Lanches', 'Bebidas', 'Sobremesas', 'Porções']
+        categorias = ['Lanches', 'Bebidas', 'Sobremesas', 'Porções', 'Pasteis']
         for cat_nome in categorias:
             cat, created = Categoria.objects.get_or_create(nome=cat_nome)
             if created:

@@ -13,8 +13,9 @@ import {
   TableHeader, 
   TableRow 
 } from "../../components/ui/table"
-import { Plus, Search, Edit2, Trash2, RefreshCw, AlertCircle, UtensilsCrossed } from "lucide-react"
+import { Plus, Search, Edit2, Trash2, RefreshCw, AlertCircle, UtensilsCrossed, Tags } from "lucide-react"
 import { ProductForm } from "./components/ProductForm"
+import { CategoryModal } from "./components/CategoryModal"
 
 interface Produto {
   id: number
@@ -28,6 +29,7 @@ interface Produto {
 
 export default function Catalog() {
   const [showForm, setShowForm] = useState(false)
+  const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [productToEdit, setProductToEdit] = useState<Produto | null>(null)
   const [search, setSearch] = useState("")
 
@@ -74,6 +76,14 @@ export default function Catalog() {
             className="border-zinc-800 bg-zinc-900 hover:bg-zinc-800"
           >
             <RefreshCw className={`h-4 w-4 ${isValidating ? "animate-spin text-yellow-400" : "text-zinc-400"}`} />
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowCategoryModal(true)}
+            className="border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-yellow-400"
+          >
+            <Tags className="mr-2 h-4 w-4 text-yellow-400" />
+            Novo Tipo / Categoria
           </Button>
           <Button
             onClick={() => {
@@ -203,6 +213,11 @@ export default function Catalog() {
           }}
         />
       )}
+
+      <CategoryModal
+        isOpen={showCategoryModal}
+        onClose={() => setShowCategoryModal(false)}
+      />
     </div>
   )
 }

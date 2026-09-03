@@ -5,6 +5,8 @@ import useSWR, { mutate } from "swr"
 import api, { fetcher } from "../../../services/api"
 import { Button } from "../../../components/ui/button"
 import { Input } from "../../../components/ui/input"
+import { Plus } from "lucide-react"
+import { CategoryModal } from "./CategoryModal"
 
 interface Categoria {
   id: number
@@ -41,6 +43,7 @@ export function ProductForm({ onClose, productToEdit }: ProductFormProps) {
   const [descricao, setDescricao] = useState(productToEdit?.descricao || "")
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState("")
+  const [showCatModal, setShowCatModal] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -134,9 +137,19 @@ export function ProductForm({ onClose, productToEdit }: ProductFormProps) {
           </div>
 
           <div>
-            <label className="mb-1.5 block font-semibold text-zinc-300">
-              Categoria
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="font-semibold text-zinc-300">
+                Tipo / Categoria
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowCatModal(true)}
+                className="text-[11px] font-semibold text-yellow-400 hover:text-yellow-300 flex items-center gap-1 transition-colors"
+              >
+                <Plus className="h-3 w-3" />
+                Novo Tipo
+              </button>
+            </div>
             <select
               className="flex h-10 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 shadow-sm focus-visible:outline-none focus-visible:border-yellow-400"
               value={categoria}
@@ -196,6 +209,15 @@ export function ProductForm({ onClose, productToEdit }: ProductFormProps) {
           </div>
         </form>
       </div>
+
+      <CategoryModal
+        isOpen={showCatModal}
+        onClose={() => setShowCatModal(false)}
+        onCreated={(newCat) => {
+          setCategoria(String(newCat.id))
+          mutate("/catalog/categorias/")
+        }}
+      />
     </div>
   )
 }
