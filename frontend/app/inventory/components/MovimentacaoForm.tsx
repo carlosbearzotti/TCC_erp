@@ -2,9 +2,9 @@
 
 import { useState } from "react"
 import { mutate } from "swr"
-import api from "../../../services/api"
-import { Button } from "../../../components/ui/button"
-import { Input } from "../../../components/ui/input"
+import api from "@/services/api"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 interface Insumo {
   id: number
@@ -20,9 +20,9 @@ interface MovimentacaoFormProps {
 
 export function MovimentacaoForm({ onClose, insumos }: MovimentacaoFormProps) {
   const [insumoId, setInsumoId] = useState(insumos.length > 0 ? String(insumos[0].id) : "")
-  const [tipo, setTipo] = useState<"entrada" | "saida">("entrada")
+  const [tipo, setTipo] = useState<"ENTRADA" | "SAIDA">("ENTRADA")
   const [quantidade, setQuantidade] = useState("1")
-  const [motivo, setMotivo] = useState("")
+  const [motivo, setMotivo] = useState("COMPRA")
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState("")
 
@@ -37,20 +37,23 @@ export function MovimentacaoForm({ onClose, insumos }: MovimentacaoFormProps) {
       await api.post("/inventory/movimentacoes/", {
         insumo: parseInt(insumoId),
         tipo,
-        quantidade: parseFloat(quantidade),
-        motivo: motivo || (tipo === "entrada" ? "Reposição de estoque" : "Ajuste manual / Baixa"),
+        quantidade: parseFloat(quantidade) || 0,
+        motivo,
       })
 
       mutate("/inventory/insumos/")
+      mutate("/inventory/movimentacoes/")
       onClose()
     } catch (err: any) {
       console.error("Erro ao registrar movimentação:", err)
-      setErrorMsg(
-        err.response?.data?.quantidade ||
-        err.response?.data?.detail ||
-        JSON.stringify(err.response?.data) ||
-        "Erro ao processar movimentação de estoque."
-      )
+      const data = err.response?.data
+      let message = "Erro ao processar movimentação de estoque."
+      if (typeof data === "object" && data !== null) {
+        message = Object.entries(data)
+          .map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(", ") : val}`)
+          .join(" | ")
+      }
+      setErrorMsg(message)
     } finally {
       setLoading(false)
     }
@@ -94,50 +97,71 @@ export function MovimentacaoForm({ onClose, insumos }: MovimentacaoFormProps) {
               <button
                 type="button"
                 className={`py-2.5 text-xs font-bold rounded-xl border transition-all ${
-                  tipo === "entrada"
+                  tipo === "ENTRADA"
                     ? "bg-green-500/20 border-green-500 text-green-400 shadow-sm"
                     : "border-zinc-800 bg-zinc-950 text-zinc-400 hover:bg-zinc-800"
                 }`}
-                onClick={() => setTipo("entrada")}
+                onClick={() => {
+                  setTipo("ENTRADA")
+                  if (motivo === "BAIXA" || motivo === "PERDA") setMotivo("COMPRA")
+                }}
               >
-                + Entrada (Compra)
+                + Entrada
               </button>
               <button
                 type="button"
                 className={`py-2.5 text-xs font-bold rounded-xl border transition-all ${
-                  tipo === "saida"
+                  tipo === "SAIDA"
                     ? "bg-red-500/20 border-red-500 text-red-400 shadow-sm"
                     : "border-zinc-800 bg-zinc-950 text-zinc-400 hover:bg-zinc-800"
                 }`}
-                onClick={() => setTipo("saida")}
+                onClick={() => {
+                  setTipo("SAIDA")
+                  if (motivo === "COMPRA") setMotivo("BAIXA")
+                }}
               >
-                - Saída (Baixa/Perda)
+                - Saída
               </button>
             </div>
           </div>
 
           <div>
             <label className="mb-1.5 block font-semibold text-zinc-300">
-              Quantidade ({selectedInsumo?.unidade_medida || "unidades"})
+              Motivo da Movimentação
             </label>
-            <Input
+            <select
+              className="flex h-10 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 shadow-sm focus-visible:outline-none focus-visible:border-yellow-400"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
               required
-              type="number"
-              step="0.01"
-              min="0.01"
-              value={quantidade}
-              onChange={(e) => setQuantidade(e.target.value)}
-            />
+            >
+              {tipo === "ENTRADA" ? (
+                <>
+                  <option value="COMPRA">Compra / Reposição de Fornecedor</option>
+                  <option value="DEVOLUCAO">Devolução</option>
+                  <option value="AJUSTE">Ajuste de Balanço / Inventário</option>
+                </>
+              ) : (
+                <>
+                  <option value="BAIXA">Baixa por Consumo / Pedido</option>
+                  <option value="PERDA">Perda / Descarte / Validade</option>
+                  <option value="AJUSTE">Ajuste de Balanço / Inventário</option>
+                </>
+              )}
+            </select>
           </div>
 
           <div>
             <label className="mb-1.5 block font-semibold text-zinc-300">
-              Motivo / Observação
+              Quantidade ({selectedInsumo?.unidade_medida || "UN"})
             </label>
             <Input
-              placeholder="Ex: Compra NF 1234 / Descarte por validade"
-              value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
+              required
+              type="number"
+              step="0.001"
+              min="0.001"
+              value={quantidade}
+              onChange={(e) => setQuantidade(e.target.value)}
             />
           </div>
 

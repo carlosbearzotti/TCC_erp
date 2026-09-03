@@ -2,9 +2,9 @@
 
 import { useState } from "react"
 import { mutate } from "swr"
-import api from "../../../services/api"
-import { Button } from "../../../components/ui/button"
-import { Input } from "../../../components/ui/input"
+import api from "@/services/api"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 interface InsumoFormProps {
   onClose: () => void
@@ -19,7 +19,7 @@ interface InsumoFormProps {
 
 export function InsumoForm({ onClose, insumoToEdit }: InsumoFormProps) {
   const [nome, setNome] = useState(insumoToEdit?.nome || "")
-  const [unidadeMedida, setUnidadeMedida] = useState(insumoToEdit?.unidade_medida || "kg")
+  const [unidadeMedida, setUnidadeMedida] = useState(insumoToEdit?.unidade_medida?.toUpperCase() || "KG")
   const [quantidadeAtual, setQuantidadeAtual] = useState(
     insumoToEdit?.quantidade_atual !== undefined ? String(insumoToEdit.quantidade_atual) : "0"
   )
@@ -36,10 +36,10 @@ export function InsumoForm({ onClose, insumoToEdit }: InsumoFormProps) {
 
     try {
       const payload = {
-        nome,
-        unidade_medida: unidadeMedida,
-        quantidade_atual: parseFloat(quantidadeAtual),
-        estoque_minimo: parseFloat(estoqueMinimo),
+        nome: nome.trim(),
+        unidade_medida: unidadeMedida.toUpperCase(),
+        quantidade_atual: parseFloat(quantidadeAtual) || 0,
+        estoque_minimo: parseFloat(estoqueMinimo) || 0,
       }
 
       if (insumoToEdit?.id) {
@@ -52,11 +52,14 @@ export function InsumoForm({ onClose, insumoToEdit }: InsumoFormProps) {
       onClose()
     } catch (err: any) {
       console.error("Erro ao salvar insumo:", err)
-      setErrorMsg(
-        err.response?.data?.detail ||
-        JSON.stringify(err.response?.data) ||
-        "Erro ao salvar insumo. Verifique os valores."
-      )
+      const data = err.response?.data
+      let message = "Erro ao salvar insumo. Verifique os valores."
+      if (typeof data === "object" && data !== null) {
+        message = Object.entries(data)
+          .map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(", ") : val}`)
+          .join(" | ")
+      }
+      setErrorMsg(message)
     } finally {
       setLoading(false)
     }
@@ -96,13 +99,13 @@ export function InsumoForm({ onClose, insumoToEdit }: InsumoFormProps) {
               <select
                 className="flex h-10 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 shadow-sm focus-visible:outline-none focus-visible:border-yellow-400"
                 value={unidadeMedida}
-                onChange={(e) => setUnidadeMedida(e.target.value)}
+                onChange={(e) => setUnidadeMedida(e.target.value.toUpperCase())}
               >
-                <option value="kg">Quilograma (kg)</option>
-                <option value="g">Grama (g)</option>
-                <option value="l">Litro (l)</option>
-                <option value="ml">Mililitro (ml)</option>
-                <option value="un">Unidade (un)</option>
+                <option value="KG">Quilograma (KG)</option>
+                <option value="G">Grama (G)</option>
+                <option value="L">Litro (L)</option>
+                <option value="ML">Mililitro (ML)</option>
+                <option value="UN">Unidade (UN)</option>
               </select>
             </div>
 
@@ -123,7 +126,7 @@ export function InsumoForm({ onClose, insumoToEdit }: InsumoFormProps) {
 
           <div>
             <label className="mb-1.5 block font-semibold text-zinc-300">
-              Quantidade Atual em Estoque
+              Quantidade Inicial em Estoque
             </label>
             <Input
               required
