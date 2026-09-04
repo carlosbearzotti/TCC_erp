@@ -44,3 +44,42 @@ def criar_perfil_para_usuario(sender, instance, created, **kwargs):
     """Cria automaticamente um perfil padrao quando um usuario e registrado."""
     if created:
         Perfil.objects.get_or_create(user=instance)
+
+
+class Permissao(models.Model):
+    """Permissão granular para o sistema (ex: CANCELAR_PEDIDO)."""
+    
+    codigo = models.CharField(max_length=50, unique=True, verbose_name="código")
+    descricao = models.CharField(max_length=100, verbose_name="descrição")
+    modulo = models.CharField(max_length=50, verbose_name="módulo")
+
+    class Meta:
+        verbose_name = "permissão"
+        verbose_name_plural = "permissões"
+        ordering = ['modulo', 'codigo']
+
+    def __str__(self):
+        return f"{self.codigo} ({self.modulo})"
+
+
+class RolePermissao(models.Model):
+    """Relacionamento que define quais Perfis (Roles) possuem quais Permissões."""
+    
+    role_nome = models.CharField(
+        max_length=20,
+        choices=Perfil.ROLE_CHOICES,
+        verbose_name="perfil"
+    )
+    permissao = models.ForeignKey(
+        Permissao,
+        on_delete=models.CASCADE,
+        related_name="roles"
+    )
+
+    class Meta:
+        verbose_name = "permissão de perfil"
+        verbose_name_plural = "permissões de perfis"
+        unique_together = ('role_nome', 'permissao')
+
+    def __str__(self):
+        return f"{self.get_role_nome_display()} - {self.permissao.codigo}"

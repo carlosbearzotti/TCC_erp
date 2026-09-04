@@ -21,11 +21,19 @@ class MeSerializer(serializers.ModelSerializer):
 
     role = serializers.CharField(source='perfil.role', read_only=True)
     is_online = serializers.BooleanField(source='perfil.is_online', read_only=True)
+    permissions = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'role', 'is_online')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'role', 'is_online', 'permissions')
         read_only_fields = fields
+
+    def get_permissions(self, obj):
+        if hasattr(obj, 'perfil'):
+            from .models import RolePermissao
+            perms = RolePermissao.objects.filter(role_nome=obj.perfil.role).values_list('permissao__codigo', flat=True)
+            return list(perms)
+        return []
 
 
 class FuncionarioSerializer(serializers.ModelSerializer):

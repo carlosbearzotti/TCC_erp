@@ -7,8 +7,11 @@ import { ChefHat, Lock, User, ArrowRight, AlertCircle, RefreshCw } from "lucide-
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 
+import { useAuth } from "@/hooks/useAuth"
+
 export default function LoginPage() {
   const router = useRouter()
+  const { login } = useAuth()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -25,28 +28,15 @@ export default function LoginPage() {
     setErrorMessage("")
 
     try {
-      const response = await axios.post("http://localhost:8000/api/users/login/", {
-        username: username.trim(),
-        password: password.trim(),
-      })
-
-      const { access, refresh } = response.data
-      if (access) {
-        localStorage.setItem("access_token", access)
-        if (refresh) {
-          localStorage.setItem("refresh_token", refresh)
-        }
+      const result = await login(username.trim(), password.trim())
+      if (result.success) {
         router.push("/")
       } else {
-        setErrorMessage("Resposta inesperada do servidor.")
+        setErrorMessage(result.error || "Credenciais inválidas. Verifique seu usuário e senha.")
       }
     } catch (err: any) {
       console.error("Falha de autenticação:", err)
-      if (err.response?.status === 401) {
-        setErrorMessage("Credenciais inválidas. Verifique seu usuário e senha.")
-      } else {
-        setErrorMessage("Erro ao conectar ao servidor de autenticação.")
-      }
+      setErrorMessage("Erro ao conectar ao servidor de autenticação.")
     } finally {
       setLoading(false)
     }

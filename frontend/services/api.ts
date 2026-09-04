@@ -1,4 +1,5 @@
 import axios from 'axios';
+import Cookies from 'js-cookie';
 
 const api = axios.create({
   baseURL: 'http://localhost:8000/api/',
@@ -16,7 +17,7 @@ function onRefreshed(token: string | null) {
 async function refreshAccessToken(): Promise<string | null> {
   if (typeof window === 'undefined') return null;
 
-  const refreshToken = localStorage.getItem('refresh_token');
+  const refreshToken = (typeof window !== 'undefined' && Cookies.get('refresh_token')) || localStorage.getItem('refresh_token');
   if (!refreshToken) return null;
 
   try {
@@ -24,10 +25,14 @@ async function refreshAccessToken(): Promise<string | null> {
       refresh: refreshToken,
     });
     const newToken = res.data.access;
+    Cookies.set('access_token', newToken, { expires: 1, path: '/' });
     localStorage.setItem('access_token', newToken);
     return newToken;
   } catch (err) {
     console.warn('Sessão expirada ou token inválido:', err);
+    Cookies.remove('access_token', { path: '/' });
+    Cookies.remove('refresh_token', { path: '/' });
+    Cookies.remove('user_role', { path: '/' });
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
@@ -40,7 +45,7 @@ async function refreshAccessToken(): Promise<string | null> {
 // Request interceptor para adicionar Token JWT
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('access_token');
+    const token = Cookies.get('access_token') || localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

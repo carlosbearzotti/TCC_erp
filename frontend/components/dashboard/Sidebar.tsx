@@ -17,23 +17,34 @@ import {
   Users,
   Bike,
 } from "lucide-react";
+import { useAuth, Role } from "@/hooks/useAuth";
+import { Can } from "@/components/Can";
 
-const navItems = [
+interface NavItem {
+  label: string;
+  href: string;
+  icon: any;
+  highlight?: boolean;
+  roles?: Role[];
+}
+
+const navItems: NavItem[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  { label: "Pedidos (PDV)", href: "/orders", icon: ClipboardList },
-  { label: "Gestão do Balcão", href: "/gestao", icon: Receipt },
-  { label: "Cozinha (KDS)", href: "/cozinha", icon: ChefHat },
-  { label: "Cardápio / Catálogo", href: "/catalog", icon: UtensilsCrossed },
-  { label: "Estoque", href: "/inventory", icon: Package },
-  { label: "Equipe & Auditoria", href: "/equipe", icon: Users },
+  { label: "Pedidos (PDV)", href: "/orders", icon: ClipboardList, roles: ["administrador", "atendente"] },
+  { label: "Gestão do Balcão", href: "/gestao", icon: Receipt, roles: ["administrador", "atendente"] },
+  { label: "Cozinha (KDS)", href: "/cozinha", icon: ChefHat, roles: ["administrador", "cozinheiro"] },
+  { label: "Cardápio / Catálogo", href: "/catalog", icon: UtensilsCrossed, roles: ["administrador"] },
+  { label: "Estoque", href: "/inventory", icon: Package, roles: ["administrador", "cozinheiro"] },
+  { label: "Equipe & Auditoria", href: "/equipe", icon: Users, roles: ["administrador"] },
   { label: "App do Cliente (Mobile)", href: "/cliente", icon: Smartphone, highlight: true },
-  { label: "App do Entregador", href: "/entregador", icon: Bike, highlight: true },
-  { label: "Automação (RPA)", href: "/rpa", icon: Bot },
-  { label: "Configurações", href: "/settings", icon: Settings },
+  { label: "App do Entregador (Mobile)", href: "/entregador", icon: Bike, highlight: true, roles: ["administrador", "entregador"] },
+  { label: "Automação (RPA)", href: "/rpa", icon: Bot, roles: ["administrador"] },
+  { label: "Configurações", href: "/settings", icon: Settings, roles: ["administrador"] },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { logout, user } = useAuth();
 
   if (pathname === "/login") {
     return null;
@@ -54,29 +65,27 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {navItems.map(({ label, href, icon: Icon, highlight }) => {
+        {navItems.map(({ label, href, icon: Icon, highlight, roles }) => {
           const isActive = pathname === href;
-          return (
+          const content = (
             <Link
               key={label}
               href={href}
-              className={`group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all ${
-                isActive
+              className={`group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all ${isActive
                   ? "border-l-4 border-yellow-400 bg-zinc-950 text-yellow-400 font-semibold shadow-inner"
                   : highlight
-                  ? "border-l-4 border-transparent text-amber-300 hover:bg-amber-400/10 hover:text-amber-200"
-                  : "border-l-4 border-transparent text-zinc-400 hover:bg-zinc-950/60 hover:text-zinc-100"
-              }`}
+                    ? "border-l-4 border-transparent text-amber-300 hover:bg-amber-400/10 hover:text-amber-200"
+                    : "border-l-4 border-transparent text-zinc-400 hover:bg-zinc-950/60 hover:text-zinc-100"
+                }`}
             >
               <div className="flex items-center gap-3">
                 <Icon
-                  className={`h-4 w-4 shrink-0 ${
-                    isActive
+                  className={`h-4 w-4 shrink-0 ${isActive
                       ? "text-yellow-400"
                       : highlight
-                      ? "text-amber-400"
-                      : "text-zinc-500 transition-colors group-hover:text-zinc-300"
-                  }`}
+                        ? "text-amber-400"
+                        : "text-zinc-500 transition-colors group-hover:text-zinc-300"
+                    }`}
                 />
                 <span>{label}</span>
               </div>
@@ -87,6 +96,16 @@ export function Sidebar() {
               )}
             </Link>
           );
+
+          if (roles && roles.length > 0) {
+            return (
+              <Can key={label} roles={roles}>
+                {content}
+              </Can>
+            );
+          }
+
+          return content;
         })}
       </nav>
 
@@ -127,16 +146,22 @@ export function Sidebar() {
           </button>
         </div>
 
+        {user && (
+          <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-zinc-800 bg-zinc-950/80 p-2 px-3">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-yellow-400 text-xs font-black text-zinc-950 uppercase">
+              {user.username.slice(0, 2)}
+            </div>
+            <div className="min-w-0 flex-1 leading-tight">
+              <p className="truncate text-xs font-semibold text-zinc-200">{user.username}</p>
+              <p className="truncate text-[10px] font-medium text-yellow-400 capitalize">{user.role}</p>
+            </div>
+          </div>
+        )}
+
         <button
           type="button"
-          onClick={() => {
-            if (typeof window !== "undefined") {
-              localStorage.removeItem("access_token");
-              localStorage.removeItem("refresh_token");
-              window.location.href = "/login";
-            }
-          }}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-800 bg-zinc-950/60 px-3 py-2.5 text-xs font-semibold text-zinc-400 transition-all hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400"
+          onClick={logout}
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-xs font-semibold text-zinc-400 transition-all hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400"
         >
           <LogOut className="h-3.5 w-3.5" />
           Sair da Conta
