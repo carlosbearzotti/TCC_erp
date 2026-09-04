@@ -25,9 +25,9 @@ class PodeOperarPedidos(BasePermission):
 
 
 class IsCozinheiro(BasePermission):
-    """Permite apenas cozinheiros operarem a fila de preparo."""
+    """Permite cozinheiros e administradores operarem a fila de preparo."""
 
-    message = 'Apenas cozinheiros podem operar a fila de preparo.'
+    message = 'Apenas cozinheiros e administradores podem operar a fila de preparo.'
 
     def has_permission(self, request, view):
         user = request.user
@@ -36,4 +36,4 @@ class IsCozinheiro(BasePermission):
         if user.is_staff or user.is_superuser:
             return True
         perfil = getattr(user, 'perfil', None)
-        return perfil is not None and perfil.role == 'cozinheiro'
+        return perfil is not None and perfil.role in ('cozinheiro', 'administrador')

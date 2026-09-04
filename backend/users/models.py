@@ -41,9 +41,10 @@ class Perfil(models.Model):
 
 
 def criar_perfil_para_usuario(sender, instance, created, **kwargs):
-    """Cria automaticamente um perfil padrao quando um usuario e registrado."""
+    """Cria automaticamente um perfil padrão quando um usuário é registrado."""
     if created:
-        Perfil.objects.get_or_create(user=instance)
+        role = 'administrador' if (instance.is_superuser or getattr(instance, 'is_staff', False)) else 'cliente'
+        Perfil.objects.get_or_create(user=instance, defaults={'role': role})
 
 
 class Permissao(models.Model):

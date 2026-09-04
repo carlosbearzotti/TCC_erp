@@ -150,8 +150,11 @@ class PedidoSerializer(serializers.ModelSerializer):
         tipo = validated_data.get('tipo_atendimento', 'mesa')
         if tipo == 'balcao' and not validated_data.get('numero_mesa'):
             validated_data['numero_mesa'] = 'Balcão'
-        elif tipo == 'delivery' and not validated_data.get('numero_mesa'):
-            validated_data['numero_mesa'] = 'Delivery'
+        elif tipo == 'delivery':
+            if not validated_data.get('numero_mesa'):
+                validated_data['numero_mesa'] = 'Delivery'
+            if not validated_data.get('codigo_pin_entrega'):
+                validated_data['codigo_pin_entrega'] = f"{random.randint(1000, 9999):04d}"
         elif tipo == 'retirada' and not validated_data.get('numero_mesa'):
             validated_data['numero_mesa'] = 'Retirada'
 

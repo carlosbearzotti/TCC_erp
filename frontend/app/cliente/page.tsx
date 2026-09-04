@@ -3,6 +3,7 @@
 import { useState } from "react"
 import useSWR, { mutate } from "swr"
 import api, { fetcher } from "../../services/api"
+import { useAuth } from "../../hooks/useAuth"
 import { 
   Search, 
   ShoppingBag, 
@@ -61,6 +62,60 @@ export default function ConsumerApp() {
   const [confirmedOrder, setConfirmedOrder] = useState<any | null>(null)
   const [loadingCheckout, setLoadingCheckout] = useState(false)
 
+  // Autenticação
+  const { isAuthenticated, login, user, logout } = useAuth()
+  const [loginUsername, setLoginUsername] = useState("")
+  const [loginPassword, setLoginPassword] = useState("")
+  const [loginError, setLoginError] = useState("")
+  const [loadingLogin, setLoadingLogin] = useState(false)
+
+  const handleLoginSubmit = async () => {
+    setLoadingLogin(true)
+    setLoginError("")
+    const res = await login(loginUsername, loginPassword)
+    if (!res.success) {
+      setLoginError(res.error || "Erro ao fazer login.")
+    }
+    setLoadingLogin(false)
+  }
+
+  // Endereço de entrega
+  const [cep, setCep] = useState("")
+  const [logradouro, setLogradouro] = useState("")
+  const [numero, setNumero] = useState("")
+  const [complemento, setComplemento] = useState("")
+  const [bairro, setBairro] = useState("")
+  const [cidade, setCidade] = useState("")
+  const [uf, setUf] = useState("")
+  const [loadingCep, setLoadingCep] = useState(false)
+
+  // Cartão (Mock)
+  const [cardNumber, setCardNumber] = useState("")
+  const [cardName, setCardName] = useState("")
+  const [cardCvv, setCardCvv] = useState("")
+
+  const handleBuscarCep = async (cepInput: string) => {
+    const raw = cepInput.replace(/\D/g, "")
+    setCep(cepInput)
+    if (raw.length === 8) {
+      setLoadingCep(true)
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${raw}/json/`)
+        const data = await res.json()
+        if (!data.erro) {
+          setLogradouro(data.logradouro || "")
+          setBairro(data.bairro || "")
+          setCidade(data.localidade || "")
+          setUf(data.uf || "")
+        }
+      } catch (err) {
+        console.warn("Falha ViaCEP", err)
+      } finally {
+        setLoadingCep(false)
+      }
+    }
+  }
+
   // Produtos disponíveis filtrados
   const availableProducts = (produtos || []).filter((p) => p.disponibilidade)
 
@@ -105,15 +160,35 @@ export default function ConsumerApp() {
   const handleFinalizeOrder = async () => {
     if (cartItems.length === 0) return
 
+    if (deliveryType === "entrega") {
+      if (!cep || !logradouro || !numero || !bairro || !cidade) {
+        alert("Preencha todos os campos obrigatórios do endereço.")
+        return
+      }
+    }
+
+    if (paymentMethod === "cartao_credito" || paymentMethod === "cartao_debito") {
+      if (cardNumber.length < 16 || cardName.length < 3 || cardCvv.length < 3) {
+        alert("Preencha os dados do cartão corretamente (apenas simulação).")
+        return
+      }
+    }
+
     setLoadingCheckout(true)
     try {
-      const payload = {
+      const payload: any = {
         status: "criado",
+        tipo_atendimento: deliveryType === "entrega" ? "delivery" : "retirada",
+        numero_mesa: deliveryType === "entrega" ? "Delivery" : "Retirada",
         payment_method: paymentMethod,
         itens: cartItems.map((item) => ({
           produto: item.product.id,
           quantidade: item.quantity,
         })),
+      }
+
+      if (deliveryType === "entrega") {
+        payload.endereco = { cep, logradouro, numero, complemento, bairro, cidade, uf }
       }
 
       const res = await api.post("/orders/", payload)
@@ -428,6 +503,49 @@ export default function ConsumerApp() {
                     </button>
                   </div>
 
+                  {deliveryType === "entrega" && (
+                    <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 space-y-3 animate-in fade-in">
+                      <div className="flex justify-between items-center text-xs font-bold text-yellow-400">
+                        <span>Endereço de Entrega</span>
+                        {loadingCep && <RefreshCw className="h-3 w-3 animate-spin" />}
+                      </div>
+                      <input
+                        placeholder="CEP"
+                        value={cep}
+                        onChange={(e) => handleBuscarCep(e.target.value)}
+                        className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400"
+                      />
+                      <div className="grid grid-cols-3 gap-2">
+                        <input
+                          placeholder="Rua"
+                          value={logradouro}
+                          onChange={(e) => setLogradouro(e.target.value)}
+                          className="col-span-2 rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400"
+                        />
+                        <input
+                          placeholder="Nº"
+                          value={numero}
+                          onChange={(e) => setNumero(e.target.value)}
+                          className="rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          placeholder="Bairro"
+                          value={bairro}
+                          onChange={(e) => setBairro(e.target.value)}
+                          className="rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400"
+                        />
+                        <input
+                          placeholder="Complemento"
+                          value={complemento}
+                          onChange={(e) => setComplemento(e.target.value)}
+                          className="rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400"
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <button
                     onClick={() => setCheckoutStep("payment")}
                     className="w-full rounded-2xl bg-yellow-400 py-3.5 text-center text-xs font-black text-zinc-950 shadow-lg shadow-yellow-400/20 active:scale-95 transition-transform"
@@ -437,9 +555,50 @@ export default function ConsumerApp() {
                 </div>
               )}
 
-              {/* ETAPA 3: FORMAS DE PAGAMENTO COM RADIO BUTTONS AMARELOS */}
-              {checkoutStep === "payment" && (
-                <div className="space-y-4">
+              {/* ETAPA 3: FORMAS DE PAGAMENTO COM RADIO BUTTONS AMARELOS E LOGIN */}
+              {checkoutStep === "payment" && !isAuthenticated && (
+                <div className="space-y-4 animate-in fade-in">
+                  <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 space-y-4">
+                    <div className="text-center">
+                      <User className="mx-auto h-8 w-8 text-yellow-400 mb-2" />
+                      <h4 className="text-sm font-bold text-zinc-100">Identifique-se</h4>
+                      <p className="text-[10px] text-zinc-400 mt-1">Faça login para concluir seu pedido.</p>
+                    </div>
+
+                    {loginError && (
+                      <div className="rounded-xl bg-red-500/10 p-2.5 text-[11px] text-red-400 text-center border border-red-500/20">
+                        {loginError}
+                      </div>
+                    )}
+
+                    <div className="space-y-3">
+                      <input
+                        placeholder="Usuário ou Email"
+                        value={loginUsername}
+                        onChange={(e) => setLoginUsername(e.target.value)}
+                        className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400"
+                      />
+                      <input
+                        type="password"
+                        placeholder="Senha"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400"
+                      />
+                      <button
+                        onClick={handleLoginSubmit}
+                        disabled={loadingLogin || !loginUsername || !loginPassword}
+                        className="w-full rounded-xl bg-yellow-400 py-3 text-xs font-bold text-zinc-950 disabled:opacity-50 flex justify-center items-center h-10"
+                      >
+                        {loadingLogin ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Entrar e Pagar"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {checkoutStep === "payment" && isAuthenticated && (
+                <div className="space-y-4 animate-in fade-in">
                   <p className="text-xs font-bold text-zinc-300">Selecione o meio de pagamento:</p>
 
                   <div className="space-y-2.5">
@@ -481,6 +640,34 @@ export default function ConsumerApp() {
                     ))}
                   </div>
 
+                  {(paymentMethod === "cartao_credito" || paymentMethod === "cartao_debito") && (
+                    <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 space-y-3 animate-in fade-in text-xs">
+                      <p className="font-bold text-yellow-400">Dados do Cartão (Simulação)</p>
+                      <input
+                        placeholder="Número do Cartão"
+                        maxLength={16}
+                        value={cardNumber}
+                        onChange={(e) => setCardNumber(e.target.value)}
+                        className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400"
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          placeholder="Nome no Cartão"
+                          value={cardName}
+                          onChange={(e) => setCardName(e.target.value)}
+                          className="rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400"
+                        />
+                        <input
+                          placeholder="CVV"
+                          maxLength={4}
+                          value={cardCvv}
+                          onChange={(e) => setCardCvv(e.target.value)}
+                          className="rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400"
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 flex justify-between font-bold text-xs text-zinc-100">
                     <span>Total a Pagar</span>
                     <span className="text-yellow-400 text-sm">
@@ -516,7 +703,15 @@ export default function ConsumerApp() {
                     Pedido <span className="font-bold text-yellow-400">#{confirmedOrder?.id}</span> registrado com sucesso.
                   </p>
 
-                  <div className="mt-6 w-full rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-xs space-y-2">
+                  {confirmedOrder?.codigo_pin_entrega && (
+                    <div className="mt-4 rounded-2xl border-2 border-yellow-400 bg-yellow-400/10 p-4 w-full">
+                      <p className="text-[10px] font-bold uppercase text-yellow-500">Seu Código de Entrega (PIN)</p>
+                      <p className="text-3xl font-black text-yellow-400 mt-1 tracking-widest">{confirmedOrder.codigo_pin_entrega}</p>
+                      <p className="text-[10px] text-zinc-400 mt-2">Informe este código ao entregador para receber seu pedido.</p>
+                    </div>
+                  )}
+
+                  <div className="mt-4 w-full rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-xs space-y-2">
                     <div className="flex justify-between text-zinc-400">
                       <span>Status:</span>
                       <span className="font-semibold text-green-400 capitalize">{confirmedOrder?.status || "Confirmado"}</span>
@@ -581,25 +776,82 @@ export default function ConsumerApp() {
           {activeTab === "profile" && (
             <div className="px-4 pt-2 space-y-4 text-xs">
               <div className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-400 text-lg font-black text-zinc-950">
-                  LP
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-400 text-lg font-black text-zinc-950 uppercase">
+                  {isAuthenticated ? (user?.first_name?.[0] || user?.username?.[0] || "C") : "?"}
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-zinc-100">Cliente Lanchonete</p>
-                  <p className="text-[11px] text-zinc-400">Modo Consumidor</p>
+                  <p className="text-sm font-bold text-zinc-100">
+                    {isAuthenticated ? (user?.first_name ? `${user.first_name} ${user.last_name}` : user?.username) : "Visitante"}
+                  </p>
+                  <p className="text-[11px] text-zinc-400">
+                    {isAuthenticated ? "Cliente Cadastrado" : "Faça login para gerenciar sua conta"}
+                  </p>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-900 divide-y divide-zinc-800">
-                <div className="p-3.5 flex justify-between items-center text-zinc-200 cursor-pointer hover:bg-zinc-800/50">
-                  <span>Meus Endereços</span>
-                  <ChevronRight className="h-4 w-4 text-zinc-500" />
+              {isAuthenticated ? (
+                <>
+                  <div className="rounded-2xl border border-zinc-800 bg-zinc-900 divide-y divide-zinc-800">
+                    <div className="p-3.5 flex justify-between items-center text-zinc-200 cursor-pointer hover:bg-zinc-800/50">
+                      <span>Meus Endereços</span>
+                      <ChevronRight className="h-4 w-4 text-zinc-500" />
+                    </div>
+                    <div className="p-3.5 flex justify-between items-center text-zinc-200 cursor-pointer hover:bg-zinc-800/50">
+                      <span>Formas de Pagamento</span>
+                      <ChevronRight className="h-4 w-4 text-zinc-500" />
+                    </div>
+                    <div className="p-3.5 flex justify-between items-center text-zinc-200 cursor-pointer hover:bg-zinc-800/50">
+                      <span>Privacidade e Segurança</span>
+                      <ChevronRight className="h-4 w-4 text-zinc-500" />
+                    </div>
+                    <div className="p-3.5 flex justify-between items-center text-zinc-200 cursor-pointer hover:bg-zinc-800/50">
+                      <span>Suporte e Ajuda</span>
+                      <ChevronRight className="h-4 w-4 text-zinc-500" />
+                    </div>
+                  </div>
+                  
+                  <button 
+                    onClick={logout}
+                    className="w-full rounded-2xl border border-red-500/30 bg-red-500/10 py-3 text-xs font-bold text-red-400 hover:bg-red-500/20"
+                  >
+                    Sair da Conta
+                  </button>
+                </>
+              ) : (
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 space-y-4">
+                  <div className="text-center mb-2">
+                    <h4 className="text-sm font-bold text-zinc-100">Faça login</h4>
+                    <p className="text-[11px] text-zinc-400 mt-1">Acesse seus pedidos e informações salvas.</p>
+                  </div>
+                  {loginError && (
+                    <div className="rounded-xl bg-red-500/10 p-2.5 text-[11px] text-red-400 text-center border border-red-500/20">
+                      {loginError}
+                    </div>
+                  )}
+                  <div className="space-y-3">
+                    <input
+                      placeholder="Usuário ou Email"
+                      value={loginUsername}
+                      onChange={(e) => setLoginUsername(e.target.value)}
+                      className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400"
+                    />
+                    <input
+                      type="password"
+                      placeholder="Senha"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400"
+                    />
+                    <button
+                      onClick={handleLoginSubmit}
+                      disabled={loadingLogin || !loginUsername || !loginPassword}
+                      className="w-full rounded-xl bg-yellow-400 py-3 text-xs font-bold text-zinc-950 disabled:opacity-50 flex justify-center items-center h-10"
+                    >
+                      {loadingLogin ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Fazer Login"}
+                    </button>
+                  </div>
                 </div>
-                <div className="p-3.5 flex justify-between items-center text-zinc-200 cursor-pointer hover:bg-zinc-800/50">
-                  <span>Formas de Pagamento</span>
-                  <ChevronRight className="h-4 w-4 text-zinc-500" />
-                </div>
-              </div>
+              )}
             </div>
           )}
         </div>

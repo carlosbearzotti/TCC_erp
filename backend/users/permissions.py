@@ -14,8 +14,11 @@ DEFAULT_ROLE_PERMISSIONS = {
 def tem_perfil(user, roles):
     if not user.is_authenticated:
         return False
+    if user.is_superuser or getattr(user, 'is_staff', False):
+        return True
     perfil = getattr(user, 'perfil', None)
-    return perfil is not None and perfil.role in roles
+    return perfil is not None and (perfil.role in roles or perfil.role == 'administrador')
+
 
 
 class IsCliente(BasePermission):

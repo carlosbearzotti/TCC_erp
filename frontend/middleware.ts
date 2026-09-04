@@ -37,10 +37,16 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // 5. Verificação de RBAC (Rotas restritas no Edge)
+  // 5. Administrador possui acesso irrestrito a todas as rotas e telas do sistema
+  if (userRole === "administrador") {
+    return NextResponse.next();
+  }
+
+  // 6. Verificação de RBAC (Rotas restritas no Edge)
   const protectedRoutePrefix = Object.keys(routeRoles).find((prefix) =>
     pathname.startsWith(prefix)
   );
+
 
   if (protectedRoutePrefix && userRole) {
     const allowedRoles = routeRoles[protectedRoutePrefix];

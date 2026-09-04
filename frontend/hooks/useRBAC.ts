@@ -7,12 +7,17 @@ export function useRBAC() {
 
   const hasRole = (allowedRoles: Role | Role[]): boolean => {
     if (!user) return false;
+    // Administrador tem acesso irrestrito a todas as funções e telas
+    if (user.role === "administrador") return true;
     const rolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
     return rolesArray.includes(user.role);
   };
 
   const hasPermission = (permission: string | string[]): boolean => {
-    if (!user || !user.permissions) return false;
+    if (!user) return false;
+    // Administrador tem todas as permissões
+    if (user.role === "administrador") return true;
+    if (!user.permissions) return false;
     const permissionsArray = Array.isArray(permission) ? permission : [permission];
     return permissionsArray.some((p) => user.permissions.includes(p));
   };

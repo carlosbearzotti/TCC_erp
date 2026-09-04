@@ -19,7 +19,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 class MeSerializer(serializers.ModelSerializer):
     """Serializer do usuario autenticado com seu perfil de acesso."""
 
-    role = serializers.CharField(source='perfil.role', read_only=True)
+    role = serializers.SerializerMethodField()
     is_online = serializers.BooleanField(source='perfil.is_online', read_only=True)
     permissions = serializers.SerializerMethodField()
 
@@ -28,12 +28,23 @@ class MeSerializer(serializers.ModelSerializer):
         fields = ('id', 'username', 'email', 'first_name', 'last_name', 'role', 'is_online', 'permissions')
         read_only_fields = fields
 
+    def get_role(self, obj):
+        if obj.is_superuser or getattr(obj, 'is_staff', False):
+            return 'administrador'
+        if hasattr(obj, 'perfil') and obj.perfil:
+            return obj.perfil.role
+        return 'cliente'
+
     def get_permissions(self, obj):
-        if hasattr(obj, 'perfil'):
+        if obj.is_superuser or getattr(obj, 'is_staff', False) or (hasattr(obj, 'perfil') and obj.perfil.role == 'administrador'):
+            from .models import Permissao
+            return list(Permissao.objects.values_list('codigo', flat=True))
+        if hasattr(obj, 'perfil') and obj.perfil:
             from .models import RolePermissao
             perms = RolePermissao.objects.filter(role_nome=obj.perfil.role).values_list('permissao__codigo', flat=True)
             return list(perms)
         return []
+
 
 
 class FuncionarioSerializer(serializers.ModelSerializer):

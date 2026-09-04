@@ -46,6 +46,11 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
       return;
     }
 
+    // Administrador tem acesso universal a todas as telas do sistema
+    if (user.role === "administrador") {
+      return;
+    }
+
     // 3. Verificação explícita por allowedRoles passados na prop do Layout/Componente
     if (allowedRoles && allowedRoles.length > 0) {
       if (!allowedRoles.includes(user.role)) {
