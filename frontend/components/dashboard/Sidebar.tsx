@@ -16,6 +16,7 @@ import {
   Receipt,
   Users,
   Bike,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuth, Role } from "@/hooks/useAuth";
 import { Can } from "@/components/Can";
@@ -36,6 +37,7 @@ const navItems: NavItem[] = [
   { label: "Cardápio / Catálogo", href: "/catalog", icon: UtensilsCrossed, roles: ["administrador"] },
   { label: "Estoque", href: "/inventory", icon: Package, roles: ["administrador", "cozinheiro"] },
   { label: "Equipe & Auditoria", href: "/equipe", icon: Users, roles: ["administrador"] },
+  { label: "Permissões (RBAC)", href: "/permissoes", icon: ShieldCheck, roles: ["administrador"] },
   { label: "App do Cliente (Mobile)", href: "/cliente", icon: Smartphone, highlight: true },
   { label: "App do Entregador (Mobile)", href: "/entregador", icon: Bike, highlight: true, roles: ["administrador", "entregador"] },
   { label: "Automação (RPA)", href: "/rpa", icon: Bot, roles: ["administrador"] },

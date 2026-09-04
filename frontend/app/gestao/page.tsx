@@ -31,6 +31,7 @@ import {
   Bike,
 } from "lucide-react"
 import { PaymentModal } from "@/components/orders/PaymentModal"
+import { Can } from "@/components/Can"
 
 interface Endereco {
   cep: string
@@ -350,13 +351,15 @@ export default function GestaoBalcaoPage() {
             <span>Atualizar</span>
           </button>
 
-          <button
-            onClick={() => setIsCloseShiftOpen(true)}
-            className="flex items-center gap-2 px-5 h-11 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white text-xs font-black transition-all shadow-md active:scale-95"
-          >
-            <Archive className="h-4 w-4" />
-            <span>Encerrar Expediente</span>
-          </button>
+          <Can do="FECHAR_CAIXA">
+            <button
+              onClick={() => setIsCloseShiftOpen(true)}
+              className="flex items-center gap-2 px-5 h-11 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white text-xs font-black transition-all shadow-md active:scale-95"
+            >
+              <Archive className="h-4 w-4" />
+              <span>Encerrar Expediente</span>
+            </button>
+          </Can>
         </div>
       </div>
 
@@ -629,13 +632,15 @@ export default function GestaoBalcaoPage() {
 
                           {/* Cancelar */}
                           {canCancel && (
-                            <button
-                              onClick={() => setSelectedOrderForCancel(order)}
-                              title="Cancelar Pedido"
-                              className="p-2 rounded-xl border border-zinc-800 bg-zinc-950 text-red-400 hover:text-red-300 hover:bg-zinc-800 transition-colors"
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </button>
+                            <Can do="CANCELAR_PEDIDO">
+                              <button
+                                onClick={() => setSelectedOrderForCancel(order)}
+                                title="Cancelar Pedido"
+                                className="p-2 rounded-xl border border-zinc-800 bg-zinc-950 text-red-400 hover:text-red-300 hover:bg-zinc-800 transition-colors"
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </button>
+                            </Can>
                           )}
 
                           {/* Cobrar / Pagar */}

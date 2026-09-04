@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { 
   Settings, 
   Store, 
@@ -11,7 +12,9 @@ import {
   Save, 
   CheckCircle2, 
   Bot,
-  DollarSign
+  DollarSign,
+  ArrowRight,
+  KeyRound
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -280,10 +283,31 @@ export default function SettingsPage() {
                 <ShieldCheck className="h-4 w-4 text-yellow-400" /> Credenciais &amp; Acessos
               </h2>
 
+              {/* Card Matriz de Permissões (RBAC) */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-yellow-400/30 bg-yellow-400/5 p-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <KeyRound className="h-4 w-4 text-yellow-400" />
+                    <p className="font-bold text-xs text-zinc-100">Matriz de Permissões (RBAC)</p>
+                    <span className="rounded-full bg-yellow-400/20 px-2 py-0.5 text-[10px] font-bold text-yellow-400">Novo</span>
+                  </div>
+                  <p className="text-[11px] text-zinc-400">
+                    Gerencie visualmente com switches quais papéis (Admin, Atendente, Cozinheiro, etc.) têm permissão para cancelar pedidos, ver faturamento ou editar estoque.
+                  </p>
+                </div>
+                <Link
+                  href="/permissoes"
+                  className="flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2 text-xs font-bold text-zinc-950 shadow-md shadow-yellow-400/20 transition-all hover:bg-yellow-300 active:scale-95 shrink-0"
+                >
+                  Abrir Matriz
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+
               <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4 space-y-2 text-xs">
                 <p className="font-bold text-zinc-200">Acesso Administrativo ao Django Admin</p>
                 <p className="text-zinc-400">
-                  Para gerenciar permissões detalhadas de usuários, acesse o painel seguro do Django em{" "}
+                  Para gerenciar modelos do sistema em baixo nível, acesse o painel seguro do Django em{" "}
                   <a
                     href="http://localhost:8000/admin/"
                     target="_blank"

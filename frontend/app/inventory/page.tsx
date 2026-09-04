@@ -16,6 +16,7 @@ import {
 import { Plus, Search, AlertTriangle, ArrowRightLeft, RefreshCw, AlertCircle, Edit2, Trash2, Package } from "lucide-react"
 import { InsumoForm } from "./components/InsumoForm"
 import { MovimentacaoForm } from "./components/MovimentacaoForm"
+import { Can } from "../../components/Can"
 
 interface Insumo {
   id: number
@@ -74,25 +75,27 @@ export default function Inventory() {
           >
             <RefreshCw className={`h-4 w-4 ${isValidating ? "animate-spin text-yellow-400" : "text-zinc-400"}`} />
           </Button>
-          <Button
-            variant="outline"
-            className="flex-1 sm:flex-none border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-200"
-            onClick={() => setShowMovForm(true)}
-            disabled={!insumos || insumos.length === 0}
-          >
-            <ArrowRightLeft className="mr-2 h-4 w-4 text-yellow-400" />
-            Movimentar
-          </Button>
-          <Button
-            className="flex-1 sm:flex-none"
-            onClick={() => {
-              setInsumoToEdit(null)
-              setShowInsumoForm(true)
-            }}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Insumo
-          </Button>
+          <Can do="EDITAR_ESTOQUE">
+            <Button
+              variant="outline"
+              className="flex-1 sm:flex-none border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-200"
+              onClick={() => setShowMovForm(true)}
+              disabled={!insumos || insumos.length === 0}
+            >
+              <ArrowRightLeft className="mr-2 h-4 w-4 text-yellow-400" />
+              Movimentar
+            </Button>
+            <Button
+              className="flex-1 sm:flex-none"
+              onClick={() => {
+                setInsumoToEdit(null)
+                setShowInsumoForm(true)
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Insumo
+            </Button>
+          </Can>
         </div>
       </div>
 
@@ -194,27 +197,29 @@ export default function Inventory() {
                       </span>
                     </TableCell>
                     <TableCell className="text-right space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-zinc-400 hover:text-yellow-400 hover:bg-yellow-400/10"
-                        onClick={() => {
-                          setInsumoToEdit(item)
-                          setShowInsumoForm(true)
-                        }}
-                        title="Editar"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-zinc-400 hover:text-red-400 hover:bg-red-500/10"
-                        onClick={() => handleDelete(item.id, item.nome)}
-                        title="Excluir"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Can do="EDITAR_ESTOQUE">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-zinc-400 hover:text-yellow-400 hover:bg-yellow-400/10"
+                          onClick={() => {
+                            setInsumoToEdit(item)
+                            setShowInsumoForm(true)
+                          }}
+                          title="Editar"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-zinc-400 hover:text-red-400 hover:bg-red-500/10"
+                          onClick={() => handleDelete(item.id, item.nome)}
+                          title="Excluir"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </Can>
                     </TableCell>
                   </TableRow>
                 )

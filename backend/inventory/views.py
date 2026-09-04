@@ -2,7 +2,9 @@
 
 from rest_framework import mixins
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
+from users.permissions import tem_permissao
 
 from .models import Insumo, Movimentacao, ReceitaItem
 from .serializers import InsumoSerializer, MovimentacaoSerializer, ReceitaItemSerializer
@@ -18,6 +20,21 @@ class InsumoViewSet(ModelViewSet):
     queryset = Insumo.objects.all()
     serializer_class = InsumoSerializer
     permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        if not tem_permissao(self.request.user, 'EDITAR_ESTOQUE'):
+            raise PermissionDenied('Você não possui permissão para editar o estoque.')
+        super().perform_create(serializer)
+
+    def perform_update(self, serializer):
+        if not tem_permissao(self.request.user, 'EDITAR_ESTOQUE'):
+            raise PermissionDenied('Você não possui permissão para editar o estoque.')
+        super().perform_update(serializer)
+
+    def perform_destroy(self, instance):
+        if not tem_permissao(self.request.user, 'EDITAR_ESTOQUE'):
+            raise PermissionDenied('Você não possui permissão para editar o estoque.')
+        super().perform_destroy(instance)
 
     @action(detail=False, methods=['get'])
     def alertas(self, request):
@@ -43,6 +60,8 @@ class MovimentacaoViewSet(
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
+        if not tem_permissao(self.request.user, 'EDITAR_ESTOQUE'):
+            raise PermissionDenied('Você não possui permissão para editar o estoque.')
         mov = serializer.save(responsavel=self.request.user)
         try:
             from core.services import registrar_auditoria

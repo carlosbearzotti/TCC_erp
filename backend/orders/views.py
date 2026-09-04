@@ -8,6 +8,7 @@ from .models import Pedido
 from .permissions import is_equipe
 from .serializers import PedidoSerializer
 from .services import transicionar_status
+from users.permissions import tem_permissao
 
 
 class PedidoListCreateView(generics.ListCreateAPIView):
@@ -47,6 +48,8 @@ class PedidoDetailView(generics.RetrieveUpdateDestroyAPIView):
 
         novo_status = serializer.validated_data.get('status')
         if novo_status and novo_status != serializer.instance.status:
+            if novo_status == 'cancelado' and not tem_permissao(self.request.user, 'CANCELAR_PEDIDO'):
+                raise PermissionDenied('Você não possui permissão para cancelar pedidos.')
             transicionar_status(
                 serializer.instance,
                 novo_status,
@@ -59,6 +62,8 @@ class PedidoDetailView(generics.RetrieveUpdateDestroyAPIView):
     def perform_destroy(self, instance):
         if not is_equipe(self.request.user):
             raise PermissionDenied('Apenas a equipe pode excluir pedidos.')
+        if not tem_permissao(self.request.user, 'CANCELAR_PEDIDO'):
+            raise PermissionDenied('Você não possui permissão para excluir pedidos.')
 
         if instance.status in ('entregue', 'finalizado'):
             raise ValidationError(
@@ -109,6 +114,8 @@ class CloseShiftView(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
         if not is_equipe(request.user):
             raise PermissionDenied('Apenas a equipe pode encerrar o expediente.')
+        if not tem_permissao(request.user, 'FECHAR_CAIXA'):
+            raise PermissionDenied('Você não possui permissão para encerrar o expediente / fechar caixa.')
 
         pedidos_para_arquivar = Pedido.objects.filter(status__in=['finalizado', 'cancelado'])
         total_arquivados = pedidos_para_arquivar.count()
