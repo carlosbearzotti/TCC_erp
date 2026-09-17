@@ -17,6 +17,7 @@ import {
   Users,
   Bike,
   ShieldCheck,
+  DollarSign,
 } from "lucide-react";
 import { useAuth, Role } from "@/hooks/useAuth";
 import { Can } from "@/components/Can";
@@ -33,6 +34,7 @@ const navItems: NavItem[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Pedidos (PDV)", href: "/orders", icon: ClipboardList, roles: ["administrador", "atendente"] },
   { label: "Gestão do Balcão", href: "/gestao", icon: Receipt, roles: ["administrador", "atendente"] },
+  { label: "Financeiro", href: "/finance", icon: DollarSign, roles: ["administrador"] },
   { label: "Cozinha (KDS)", href: "/cozinha", icon: ChefHat, roles: ["administrador", "cozinheiro"] },
   { label: "Cardápio / Catálogo", href: "/catalog", icon: UtensilsCrossed, roles: ["administrador"] },
   { label: "Estoque", href: "/inventory", icon: Package, roles: ["administrador", "cozinheiro"] },

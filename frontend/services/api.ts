@@ -1,8 +1,10 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/';
+
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api/',
+  baseURL: API_BASE,
   timeout: 10000,
 });
 
@@ -21,7 +23,7 @@ async function refreshAccessToken(): Promise<string | null> {
   if (!refreshToken) return null;
 
   try {
-    const res = await axios.post('http://localhost:8000/api/users/refresh/', {
+    const res = await axios.post(`${API_BASE}users/refresh/`, {
       refresh: refreshToken,
     });
     const newToken = res.data.access;
@@ -93,6 +95,9 @@ api.interceptors.response.use(
 );
 
 export const fetcher = (url: string) =>
+  api.get(url).then((res) => res.data);
+
+export const fetcherResults = (url: string) =>
   api.get(url).then((res) => (res.data && Array.isArray(res.data.results) ? res.data.results : res.data));
 
 export { api };

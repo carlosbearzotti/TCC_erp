@@ -193,15 +193,7 @@ export default function ConsumerApp() {
 
       const res = await api.post("/orders/", payload)
       const orderCreated = res.data
-
-      try {
-        const confirmRes = await api.patch(`/orders/${orderCreated.id}/`, {
-          status: "confirmado",
-        })
-        setConfirmedOrder(confirmRes.data || orderCreated)
-      } catch {
-        setConfirmedOrder(orderCreated)
-      }
+      setConfirmedOrder(orderCreated)
 
       mutate("/orders/")
       mutate("/inventory/insumos/")

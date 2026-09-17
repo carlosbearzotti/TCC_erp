@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 // Mapa de permissões por rota
 const routeRoles: Record<string, string[]> = {
   "/admin": ["administrador"],
+  "/finance": ["administrador"],
   "/cozinha": ["cozinheiro", "administrador"],
   "/entregador": ["entregador", "administrador"],
   "/gestao": ["administrador", "atendente"],
