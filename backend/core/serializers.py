@@ -55,7 +55,10 @@ class AuditoriaSerializer(serializers.ModelSerializer):
             'detalhes',
             'data',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = (
+            'id', 'user', 'username', 'acao', 'entidade',
+            'entidade_id', 'detalhes', 'data',
+        )
 
 
 class ConfiguracaoSerializer(serializers.ModelSerializer):

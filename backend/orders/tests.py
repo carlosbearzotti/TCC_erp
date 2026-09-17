@@ -522,3 +522,162 @@ class PedidoNovasFeaturesTests(PedidoBaseTestCase):
         # Pedido deve estar com status 'arquivado'
         detail_res = self.client.get(reverse('orders:pedido_detail', kwargs={'pk': pedido_id}))
         self.assertEqual(detail_res.data['status'], 'arquivado')
+
+    def test_cancelar_pedido_confirmado_estorna_estoque(self):
+        from decimal import Decimal
+        from inventory.models import Insumo, ReceitaItem, Movimentacao
+
+        insumo = Insumo.objects.create(
+            nome='Carne de Pastel Teste',
+            unidade_medida='KG',
+            quantidade_atual=Decimal('10.000'),
+            estoque_minimo=Decimal('1.000'),
+        )
+        ReceitaItem.objects.create(
+            produto=self.product1,
+            insumo=insumo,
+            quantidade_necessaria=Decimal('0.100'),
+        )
+
+        # Cria e confirma pedido com 2 pastéis (deve baixar 0.200 do estoque)
+        created = self.client.post(
+            reverse('orders:pedido_list_create'),
+            {'itens': [{'produto': self.product1.id, 'quantidade': 2}]},
+            format='json',
+        )
+        pedido_id = created.data['id']
+        self.client.patch(
+            reverse('orders:pedido_detail', kwargs={'pk': pedido_id}),
+            {'status': 'confirmado'},
+            format='json',
+        )
+
+        insumo.refresh_from_db()
+        self.assertEqual(insumo.quantidade_atual, Decimal('9.800'))
+
+        # Cancela o pedido (deve estornar/devolver 0.200 automaticamente ao estoque)
+        self.client.patch(
+            reverse('orders:pedido_detail', kwargs={'pk': pedido_id}),
+            {'status': 'cancelado', 'cancellation_reason': 'Desistência do cliente'},
+            format='json',
+        )
+
+        insumo.refresh_from_db()
+        self.assertEqual(insumo.quantidade_atual, Decimal('10.000'))
+        self.assertTrue(
+            Movimentacao.objects.filter(
+                insumo=insumo,
+                tipo=Movimentacao.Tipo.ENTRADA,
+                motivo=Movimentacao.Motivo.DEVOLUCAO,
+            ).exists()
+        )
+
+    def test_cancelar_pedido_apos_inicio_preparo_nao_devolve_estoque(self):
+        from decimal import Decimal
+        from inventory.models import Insumo, ReceitaItem, Movimentacao
+
+        insumo = Insumo.objects.create(
+            nome='Frango Teste Perda',
+            unidade_medida='KG',
+            quantidade_atual=Decimal('10.000'),
+            estoque_minimo=Decimal('1.000'),
+        )
+        ReceitaItem.objects.create(
+            produto=self.product1,
+            insumo=insumo,
+            quantidade_necessaria=Decimal('0.100'),
+        )
+
+        # 1. Cria e confirma pedido (baixa de 0.200 do estoque -> 9.800)
+        created = self.client.post(
+            reverse('orders:pedido_list_create'),
+            {'itens': [{'produto': self.product1.id, 'quantidade': 2}]},
+            format='json',
+        )
+        pedido_id = created.data['id']
+        self.client.patch(
+            reverse('orders:pedido_detail', kwargs={'pk': pedido_id}),
+            {'status': 'confirmado'},
+            format='json',
+        )
+        insumo.refresh_from_db()
+        self.assertEqual(insumo.quantidade_atual, Decimal('9.800'))
+
+        # 2. Inicia o preparo (status 'em_preparo')
+        self.client.patch(
+            reverse('orders:pedido_detail', kwargs={'pk': pedido_id}),
+            {'status': 'em_preparo'},
+            format='json',
+        )
+
+        # 3. Cancela o pedido após início do preparo
+        self.client.patch(
+            reverse('orders:pedido_detail', kwargs={'pk': pedido_id}),
+            {'status': 'cancelado', 'cancellation_reason': 'Cliente desistiu após início da fritura'},
+            format='json',
+        )
+
+        # Como já havia iniciado o preparo, os insumos NÃO devem ser devolvidos (perda/consumidos)
+        insumo.refresh_from_db()
+        self.assertEqual(insumo.quantidade_atual, Decimal('9.800'))
+        self.assertFalse(
+            Movimentacao.objects.filter(
+                insumo=insumo,
+                tipo=Movimentacao.Tipo.ENTRADA,
+                motivo=Movimentacao.Motivo.DEVOLUCAO,
+            ).exists()
+        )
+
+    def test_editar_itens_pos_confirmacao_e_bloqueio_no_preparo(self):
+        from decimal import Decimal
+        from inventory.models import Insumo, ReceitaItem
+
+        insumo = Insumo.objects.create(
+            nome='Queijo Teste Edicao',
+            unidade_medida='KG',
+            quantidade_atual=Decimal('5.000'),
+            estoque_minimo=Decimal('0.500'),
+        )
+        ReceitaItem.objects.create(
+            produto=self.product1,
+            insumo=insumo,
+            quantidade_necessaria=Decimal('0.100'),
+        )
+
+        # 1. Cria e confirma pedido com 1 pastel (baixa 0.100 -> saldo 4.900)
+        created = self.client.post(
+            reverse('orders:pedido_list_create'),
+            {'itens': [{'produto': self.product1.id, 'quantidade': 1}]},
+            format='json',
+        )
+        pedido_id = created.data['id']
+        self.client.patch(
+            reverse('orders:pedido_detail', kwargs={'pk': pedido_id}),
+            {'status': 'confirmado'},
+            format='json',
+        )
+        insumo.refresh_from_db()
+        self.assertEqual(insumo.quantidade_atual, Decimal('4.900'))
+
+        # 2. Ainda em 'confirmado' (antes do preparo): pode adicionar item e debita estoque
+        add_url = reverse('orders:pedido_add_item', kwargs={'pk': pedido_id})
+        res_add = self.client.post(add_url, {'produto': self.product1.id, 'quantidade': 1}, format='json')
+        self.assertEqual(res_add.status_code, 200)
+        insumo.refresh_from_db()
+        self.assertEqual(insumo.quantidade_atual, Decimal('4.800'))
+
+        # 3. Avança para 'em_preparo': agora deve ser bloqueado adicionar ou remover itens
+        self.client.patch(
+            reverse('orders:pedido_detail', kwargs={'pk': pedido_id}),
+            {'status': 'em_preparo'},
+            format='json',
+        )
+
+        res_block_add = self.client.post(add_url, {'produto': self.product1.id, 'quantidade': 1}, format='json')
+        self.assertEqual(res_block_add.status_code, 400)
+        self.assertIn('preparo', str(res_block_add.data).lower())
+
+        rem_url = reverse('orders:pedido_remove_item', kwargs={'pk': pedido_id})
+        item_id = res_add.data['itens'][0]['id']
+        res_block_rem = self.client.post(rem_url, {'item_id': item_id}, format='json')
+        self.assertEqual(res_block_rem.status_code, 400)

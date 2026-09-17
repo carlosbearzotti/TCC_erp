@@ -3,6 +3,7 @@
 from rest_framework.permissions import BasePermission
 
 ROLES_EQUIPE = ('atendente', 'cozinheiro', 'administrador')
+ROLES_FUNCIONARIOS = ('atendente', 'cozinheiro', 'entregador', 'administrador')
 
 DEFAULT_ROLE_PERMISSIONS = {
     'administrador': {'VER_METRICAS', 'CANCELAR_PEDIDO', 'FECHAR_CAIXA', 'EDITAR_ESTOQUE', 'GERENCIAR_USUARIOS'},
@@ -12,7 +13,7 @@ DEFAULT_ROLE_PERMISSIONS = {
 
 
 def tem_perfil(user, roles):
-    if not user.is_authenticated:
+    if not user or not user.is_authenticated:
         return False
     if user.is_superuser or getattr(user, 'is_staff', False):
         return True
@@ -57,19 +58,22 @@ class IsEquipe(BasePermission):
         return tem_perfil(request.user, ROLES_EQUIPE)
 
 
+class IsFuncionario(BasePermission):
+    """Permite atendentes, cozinheiros, entregadores e administradores."""
+
+    message = 'Apenas funcionários podem executar esta acao.'
+
+    def has_permission(self, request, view):
+        return tem_perfil(request.user, ROLES_FUNCIONARIOS)
+
+
 class IsAdministrador(BasePermission):
     """Permite apenas administradores (perfil ou conta staff/superuser)."""
 
     message = 'Apenas administradores podem executar esta acao.'
 
     def has_permission(self, request, view):
-        user = request.user
-        if not user.is_authenticated:
-            return False
-        if user.is_staff or user.is_superuser:
-            return True
-        perfil = getattr(user, 'perfil', None)
-        return perfil is not None and perfil.role == 'administrador'
+        return tem_perfil(request.user, ('administrador',))
 
 
 def tem_permissao(user, codigo_permissao):
@@ -78,8 +82,6 @@ def tem_permissao(user, codigo_permissao):
         return False
     if user.is_superuser or getattr(user, 'is_staff', False):
         return True
-    if user.username.startswith('admin') or user.username == 'operador':
-        return True
     perfil = getattr(user, 'perfil', None)
     if not perfil:
         return False
@@ -87,11 +89,13 @@ def tem_permissao(user, codigo_permissao):
         return True
 
     from .models import RolePermissao
-    qs_role = RolePermissao.objects.filter(role_nome=perfil.role)
-    if qs_role.exists():
-        return qs_role.filter(permissao__codigo=codigo_permissao).exists()
+    # Se a tabela RBAC já foi populada, usar apenas ela como fonte de verdade
+    if RolePermissao.objects.exists():
+        return RolePermissao.objects.filter(
+            role_nome=perfil.role, permissao__codigo=codigo_permissao
+        ).exists()
 
-    # Fallback para papéis padrão caso a tabela ainda não tenha sido populada no banco (ex: testes limpos)
+    # Fallback para papéis padrão apenas quando a tabela ainda não foi populada (ex: testes limpos)
     default_perms = DEFAULT_ROLE_PERMISSIONS.get(perfil.role, set())
     return codigo_permissao in default_perms
 

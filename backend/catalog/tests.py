@@ -10,6 +10,8 @@ class CategoriaApiTests(APITestCase):
         self.user = User.objects.create_user(
             username='administrador', password='senha-segura-123'
         )
+        self.user.perfil.role = 'administrador'
+        self.user.perfil.save()
         self.client.force_authenticate(self.user)
 
     def test_authenticated_user_can_create_category(self):
@@ -57,12 +59,30 @@ class CategoriaApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Categoria.objects.filter(id=categoria.id).exists())
 
-    def test_unauthenticated_user_cannot_access_categories(self):
+    def test_unauthenticated_user_can_view_public_catalog_but_cannot_create(self):
         self.client.force_authenticate(user=None)
 
-        response = self.client.get('/api/catalog/categorias/')
+        # Rota publica para consulta
+        get_response = self.client.get('/api/catalog/categorias/')
+        self.assertEqual(get_response.status_code, status.HTTP_200_OK)
 
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        # Criacao exige autenticacao
+        post_response = self.client.post(
+            '/api/catalog/categorias/', {'nome': 'Tentativa Invalida'}, format='json'
+        )
+        self.assertEqual(post_response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_cliente_cannot_create_category(self):
+        cliente_user = User.objects.create_user(
+            username='cliente_comum', password='senha-segura-123'
+        )
+        # Por padrao perfil.role = 'cliente'
+        self.client.force_authenticate(user=cliente_user)
+
+        response = self.client.post(
+            '/api/catalog/categorias/', {'nome': 'Hacker Cat'}, format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_category_name_must_be_unique(self):
         Categoria.objects.create(nome='Bebidas')
@@ -80,6 +100,8 @@ class ProdutoApiTests(APITestCase):
         self.user = User.objects.create_user(
             username='administrador_produtos', password='senha-segura-123'
         )
+        self.user.perfil.role = 'administrador'
+        self.user.perfil.save()
         self.client.force_authenticate(self.user)
         self.categoria = Categoria.objects.create(nome='Lanches', status=True)
 
@@ -167,9 +189,24 @@ class ProdutoApiTests(APITestCase):
         self.assertEqual(missing_response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('categoria', missing_response.data)
 
-    def test_unauthenticated_user_cannot_access_products(self):
+    def test_unauthenticated_user_can_view_public_products_but_cannot_create(self):
         self.client.force_authenticate(user=None)
 
-        response = self.client.get('/api/catalog/produtos/')
+        # Consulta de catalogo e publica
+        get_response = self.client.get('/api/catalog/produtos/')
+        self.assertEqual(get_response.status_code, status.HTTP_200_OK)
 
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        # Criacao exige login de equipe
+        post_response = self.client.post(
+            '/api/catalog/produtos/', self.product_payload(), format='json'
+        )
+        self.assertEqual(post_response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_cliente_cannot_create_product(self):
+        cliente = User.objects.create_user(username='cliente_prod', password='123')
+        self.client.force_authenticate(user=cliente)
+
+        response = self.client.post(
+            '/api/catalog/produtos/', self.product_payload(), format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

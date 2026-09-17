@@ -32,7 +32,7 @@ class FuncionarioViewSet(viewsets.ModelViewSet):
     """CRUD administrativo de funcionários da equipe com controle de acesso."""
 
     serializer_class = FuncionarioSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdministrador]
 
     def get_queryset(self):
         qs = User.objects.select_related('perfil').all().order_by('id')

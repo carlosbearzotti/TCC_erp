@@ -91,6 +91,27 @@ def debitar_estoque(pedido, responsavel=None):
         )
 
 
+def devolver_estoque(pedido, responsavel=None):
+    """Devolve/estorna ao estoque os insumos debitados do pedido cancelado."""
+    from inventory.models import Movimentacao
+    from collections import defaultdict
+
+    insumos_necessarios = defaultdict(Decimal)
+
+    for item in pedido.itens.select_related('produto').all():
+        for receita_item in item.produto.receita_itens.select_related('insumo').all():
+            insumos_necessarios[receita_item.insumo] += receita_item.quantidade_necessaria * item.quantidade
+
+    for insumo, qtd in insumos_necessarios.items():
+        Movimentacao.objects.create(
+            insumo=insumo,
+            tipo=Movimentacao.Tipo.ENTRADA,
+            quantidade=qtd,
+            motivo=Movimentacao.Motivo.DEVOLUCAO,
+            responsavel=responsavel
+        )
+
+
 def transicionar_status(pedido, novo_status, responsavel=None, motivo=None):
     """Altera o status do pedido em uma unica transacao.
 
@@ -118,6 +139,15 @@ def transicionar_status(pedido, novo_status, responsavel=None, motivo=None):
             pedido.cancelled_by = responsavel
             pedido.cancellation_reason = motivo or ''
             update_fields.extend(['cancelled_at', 'cancelled_by', 'cancellation_reason'])
+
+            # Devolve insumos ao estoque APENAS se o cancelamento ocorrer antes do início do preparo
+            # (se o pedido já começou o preparo, os ingredientes são considerados consumidos/perda)
+            if status_anterior == 'confirmado' and pedido.confirmed_at is not None:
+                devolver_estoque(pedido, responsavel)
+
+            # Se houver lançamento financeiro gerado para este pedido, estorna removendo a receita
+            if hasattr(pedido, 'lancamento_financeiro') and pedido.lancamento_financeiro:
+                pedido.lancamento_financeiro.delete()
 
             try:
                 from core.services import registrar_auditoria

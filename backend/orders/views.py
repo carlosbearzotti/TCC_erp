@@ -88,9 +88,32 @@ class OrderPayView(generics.GenericAPIView):
                 f'Nao e possivel realizar o pagamento de um pedido com status {pedido.get_status_display()}.'
             )
 
+        from decimal import Decimal, InvalidOperation
+        from finance.models import PAYMENT_CHOICES
+
+        # Validar forma de pagamento
         payment_method = request.data.get('payment_method', pedido.payment_method)
-        valor_recebido = request.data.get('valor_recebido', pedido.total)
-        troco = request.data.get('troco', 0.00)
+        metodos_validos = [c[0] for c in PAYMENT_CHOICES]
+        if payment_method not in metodos_validos:
+            raise ValidationError(
+                {'payment_method': f'Metodo invalido. Use: {metodos_validos}'}
+            )
+
+        # Validar valor recebido
+        try:
+            valor_recebido = Decimal(str(request.data.get('valor_recebido', pedido.total)))
+        except (InvalidOperation, TypeError, ValueError):
+            raise ValidationError({'valor_recebido': 'Valor recebido invalido.'})
+
+        if valor_recebido < 0:
+            raise ValidationError({'valor_recebido': 'O valor recebido nao pode ser negativo.'})
+        if valor_recebido < pedido.total:
+            raise ValidationError(
+                {'valor_recebido': f'Valor insuficiente. Total do pedido: R$ {pedido.total}'}
+            )
+
+        # Troco calculado no servidor — nunca aceitar do cliente
+        troco = valor_recebido - pedido.total
 
         pedido.payment_method = payment_method
         pedido.valor_recebido = valor_recebido
@@ -131,7 +154,7 @@ class CloseShiftView(generics.GenericAPIView):
 
 
 class OrderAddItemView(generics.GenericAPIView):
-    """Adiciona um item a uma comanda ou pedido em andamento."""
+    """Adiciona um item a uma comanda ou pedido em andamento (permitido antes do preparo)."""
 
     queryset = Pedido.objects.all()
     serializer_class = PedidoSerializer
@@ -141,9 +164,9 @@ class OrderAddItemView(generics.GenericAPIView):
             raise PermissionDenied('Apenas a equipe pode alterar itens do pedido.')
 
         pedido = self.get_object()
-        if pedido.status in ('finalizado', 'arquivado', 'cancelado'):
+        if pedido.status not in ('criado', 'confirmado'):
             raise ValidationError(
-                f'Nao e possivel adicionar itens a um pedido {pedido.get_status_display()}.'
+                'Itens não podem ser alterados após o início do preparo do pedido.'
             )
 
         produto_id = request.data.get('produto')
@@ -154,7 +177,10 @@ class OrderAddItemView(generics.GenericAPIView):
         if quantidade <= 0:
             raise ValidationError({'quantidade': 'A quantidade deve ser maior que zero.'})
 
+        from decimal import Decimal
+        from django.db import transaction
         from catalog.models import Produto
+        from inventory.models import Movimentacao
         from .models import ItemPedido
         from .services import recalcular_total
 
@@ -166,26 +192,45 @@ class OrderAddItemView(generics.GenericAPIView):
         if not produto.disponibilidade:
             raise ValidationError({'produto': f'Produto indisponivel: {produto.nome}.'})
 
-        # Se ja existe o item no pedido, incrementa a quantidade
-        item_existente = pedido.itens.filter(produto=produto).first()
-        if item_existente:
-            item_existente.quantidade += quantidade
-            item_existente.save(update_fields=['quantidade'])
-        else:
-            ItemPedido.objects.create(
-                pedido=pedido,
-                produto=produto,
-                quantidade=quantidade,
-                preco_unitario=produto.preco,
-            )
+        with transaction.atomic():
+            # Se o pedido já está confirmado, verificar e debitar estoque para o novo item
+            if pedido.status == 'confirmado':
+                for rec_item in produto.receita_itens.select_related('insumo').all():
+                    qtd_nec = rec_item.quantidade_necessaria * Decimal(quantidade)
+                    if rec_item.insumo.quantidade_atual < qtd_nec:
+                        raise ValidationError(
+                            f'Estoque insuficiente para {rec_item.insumo.nome}. '
+                            f'Necessário: {qtd_nec}, Disponível: {rec_item.insumo.quantidade_atual}'
+                        )
+                    Movimentacao.objects.create(
+                        insumo=rec_item.insumo,
+                        tipo=Movimentacao.Tipo.SAIDA,
+                        quantidade=qtd_nec,
+                        motivo=Movimentacao.Motivo.BAIXA,
+                        responsavel=request.user
+                    )
 
-        recalcular_total(pedido)
+            # Se ja existe o item no pedido, incrementa a quantidade
+            item_existente = pedido.itens.filter(produto=produto).first()
+            if item_existente:
+                item_existente.quantidade += quantidade
+                item_existente.save(update_fields=['quantidade'])
+            else:
+                ItemPedido.objects.create(
+                    pedido=pedido,
+                    produto=produto,
+                    quantidade=quantidade,
+                    preco_unitario=produto.preco,
+                )
+
+            recalcular_total(pedido)
+
         serializer = self.get_serializer(pedido)
         return Response(serializer.data, status=200)
 
 
 class OrderRemoveItemView(generics.GenericAPIView):
-    """Remove um item de um pedido em andamento."""
+    """Remove um item de um pedido em andamento (permitido antes do preparo)."""
 
     queryset = Pedido.objects.all()
     serializer_class = PedidoSerializer
@@ -195,9 +240,9 @@ class OrderRemoveItemView(generics.GenericAPIView):
             raise PermissionDenied('Apenas a equipe pode alterar itens do pedido.')
 
         pedido = self.get_object()
-        if pedido.status in ('finalizado', 'arquivado', 'cancelado'):
+        if pedido.status not in ('criado', 'confirmado'):
             raise ValidationError(
-                f'Nao e possivel remover itens de um pedido {pedido.get_status_display()}.'
+                'Itens não podem ser removidos após o início do preparo do pedido.'
             )
 
         item_id = request.data.get('item_id')
@@ -211,9 +256,26 @@ class OrderRemoveItemView(generics.GenericAPIView):
         if pedido.itens.count() <= 1:
             raise ValidationError('Um pedido deve ter pelo menos um item. Cancele o pedido se desejar.')
 
-        item.delete()
+        from decimal import Decimal
+        from django.db import transaction
+        from inventory.models import Movimentacao
         from .services import recalcular_total
-        recalcular_total(pedido)
+
+        with transaction.atomic():
+            # Se o pedido já havia sido confirmado, devolve os insumos do item removido ao estoque
+            if pedido.status == 'confirmado':
+                for rec_item in item.produto.receita_itens.select_related('insumo').all():
+                    qtd_ret = rec_item.quantidade_necessaria * Decimal(item.quantidade)
+                    Movimentacao.objects.create(
+                        insumo=rec_item.insumo,
+                        tipo=Movimentacao.Tipo.ENTRADA,
+                        quantidade=qtd_ret,
+                        motivo=Movimentacao.Motivo.DEVOLUCAO,
+                        responsavel=request.user
+                    )
+
+            item.delete()
+            recalcular_total(pedido)
 
         serializer = self.get_serializer(pedido)
         return Response(serializer.data, status=200)
@@ -297,7 +359,12 @@ class ConfirmarEntregaView(generics.GenericAPIView):
         if pedido.entregador != request.user and not is_equipe(request.user):
             raise PermissionDenied('Apenas o entregador responsável ou a loja pode confirmar esta entrega.')
 
+        METODOS_VALIDOS = ('pin', 'foto', 'assinatura')
         metodo = request.data.get('metodo_validacao', 'pin')
+        if metodo not in METODOS_VALIDOS:
+            raise ValidationError(
+                {'metodo_validacao': f'Metodo invalido. Use: {METODOS_VALIDOS}'}
+            )
         pin_informado = str(request.data.get('pin', '')).strip()
         comprovante_url = request.data.get('comprovante_url')
 

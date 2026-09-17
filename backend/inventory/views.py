@@ -85,7 +85,13 @@ class ReceitaItemViewSet(ModelViewSet):
     queryset = ReceitaItem.objects.all()
     serializer_class = ReceitaItemSerializer
     permission_classes = [IsAuthenticated]
-    
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [IsAuthenticated()]
+        from users.permissions import IsEquipe
+        return [IsEquipe()]
+
     def get_queryset(self):
         qs = super().get_queryset()
         produto_id = self.request.query_params.get('produto')

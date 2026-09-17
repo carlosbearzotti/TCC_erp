@@ -91,19 +91,23 @@ class PedidoSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         )
-
-    def get_entregador_nome(self, obj):
-        if obj.entregador:
-            return f'{obj.entregador.first_name} {obj.entregador.last_name}'.strip() or obj.entregador.username
-        return None
         read_only_fields = (
             'id',
+            'total',
             'confirmed_at',
             'cancelled_at',
             'cancelled_by',
             'created_at',
             'updated_at',
+            'codigo_pin_entrega',
+            'comprovante_entrega_url',
+            'motivo_falha_entrega',
         )
+
+    def get_entregador_nome(self, obj):
+        if obj.entregador:
+            return f'{obj.entregador.first_name} {obj.entregador.last_name}'.strip() or obj.entregador.username
+        return None
 
     def validate_status(self, value):
         if not self.instance and value != 'criado':

@@ -15,16 +15,17 @@ logger = logging.getLogger(__name__)
 
 def proximo_pedido(responsavel):
     """Seleciona e inicia o proximo pedido pendente da fila (FIFO)."""
-    preparo = (
-        Preparo.objects.select_related('pedido')
-        .filter(status='pendente')
-        .order_by('entered_at', 'id')
-        .first()
-    )
-    if preparo is None:
-        raise ValidationError('Nao ha pedidos pendentes na fila.')
-
     with transaction.atomic():
+        preparo = (
+            Preparo.objects.select_for_update()
+            .select_related('pedido')
+            .filter(status='pendente')
+            .order_by('entered_at', 'id')
+            .first()
+        )
+        if preparo is None:
+            raise ValidationError('Nao ha pedidos pendentes na fila.')
+
         transicionar_status(preparo.pedido, 'em_preparo', responsavel=responsavel)
         preparo.status = 'em_preparo'
         preparo.started_at = timezone.now()
@@ -41,9 +42,23 @@ def proximo_pedido(responsavel):
 
 
 def iniciar_preparo_especifico(preparo, responsavel):
-    """Inicia um preparo específico da fila."""
+    """Inicia um preparo específico da fila respeitando a ordem FIFO estrita."""
     if preparo.status != 'pendente':
         raise ValidationError('Apenas preparos pendentes podem ser iniciados.')
+
+    from django.db.models import Q
+    ha_anteriores = Preparo.objects.filter(
+        status='pendente'
+    ).filter(
+        Q(entered_at__lt=preparo.entered_at) |
+        Q(entered_at=preparo.entered_at, id__lt=preparo.id)
+    ).exists()
+
+    if ha_anteriores:
+        raise ValidationError(
+            'Não é permitido iniciar este pedido fora da ordem. '
+            'Existem pedidos anteriores aguardando preparo na fila (FIFO).'
+        )
 
     with transaction.atomic():
         transicionar_status(preparo.pedido, 'em_preparo', responsavel=responsavel)

@@ -142,3 +142,18 @@ class PreparoOperationsTests(PreparoBaseTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['results']), 1)
+
+    def test_iniciar_preparo_fora_da_ordem_e_bloqueado(self):
+        first = self._confirmar_pedido()
+        second = self._confirmar_pedido()
+
+        preparo_second = Preparo.objects.get(pedido=second)
+
+        self._autenticar_cozinheiro()
+        # Tenta iniciar o segundo antes do primeiro (tentativa de furar fila)
+        response = self.client.post(
+            reverse('preparation:preparo_start', kwargs={'pk': preparo_second.id})
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('ordem', str(response.data).lower())

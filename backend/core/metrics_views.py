@@ -4,16 +4,16 @@ from django.utils import timezone
 from django.db.models import Sum, Count, Avg
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 
 from orders.models import Pedido
 from .models import Configuracao
+from users.permissions import IsAdministrador
 
 
 class MetricasAnaliticasView(APIView):
     """Calcula e retorna métricas analíticas operacionais e de faturamento."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdministrador]
 
     def get(self, request):
         periodo = request.query_params.get('periodo', 'mes_atual')
@@ -35,8 +35,9 @@ class MetricasAnaliticasView(APIView):
             inicio = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
             fim = agora
 
-        # Queryset base excluindo cancelados
-        pedidos_validos = Pedido.objects.exclude(status='cancelado')
+        # Faturamento considera apenas pedidos que efetivamente geraram receita
+        ESTADOS_FATURAMENTO = ('entregue', 'finalizado')
+        pedidos_validos = Pedido.objects.filter(status__in=ESTADOS_FATURAMENTO)
         pedidos_periodo = pedidos_validos.filter(created_at__gte=inicio, created_at__lte=fim)
 
         # Totais

@@ -1,11 +1,20 @@
 """Serializers for inventory API input and output."""
 
+from decimal import Decimal
 from rest_framework import serializers
 
 from .models import Insumo, Movimentacao, ReceitaItem
 
 
 class InsumoSerializer(serializers.ModelSerializer):
+    quantidade_atual = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=3,
+        min_value=Decimal('0'),
+        required=False,
+        default=Decimal('0'),
+    )
+
     class Meta:
         model = Insumo
         fields = (
@@ -18,6 +27,13 @@ class InsumoSerializer(serializers.ModelSerializer):
             'updated_at',
         )
         read_only_fields = ('id', 'created_at', 'updated_at')
+
+    def to_internal_value(self, data):
+        ret = super().to_internal_value(data)
+        # Se for update (instancia ja existe), ignora tentativa de alteracao direta do saldo
+        if self.instance is not None and 'quantidade_atual' in ret:
+            ret.pop('quantidade_atual')
+        return ret
 
 
 class MovimentacaoSerializer(serializers.ModelSerializer):
