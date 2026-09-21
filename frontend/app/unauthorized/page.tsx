@@ -33,7 +33,7 @@ export default function UnauthorizedPage() {
 
           <div className="mt-8 flex flex-col gap-3">
             <Link
-              href="/"
+              href={user?.role === "cliente" ? "/cliente" : "/"}
               className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-yellow-400 text-xs font-bold text-zinc-950 shadow-lg shadow-yellow-400/20 transition-all hover:bg-yellow-300"
             >
               <Home className="h-4 w-4" />

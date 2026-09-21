@@ -7,11 +7,12 @@ import { ChefHat, Lock, User, ArrowRight, AlertCircle, RefreshCw } from "lucide-
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 
+import Link from "next/link"
 import { useAuth } from "@/hooks/useAuth"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { login } = useAuth()
+  const { login, user } = useAuth()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -30,7 +31,18 @@ export default function LoginPage() {
     try {
       const result = await login(username.trim(), password.trim())
       if (result.success) {
-        router.push("/")
+        const role = result.user?.role || user?.role
+        if (role === "cliente") {
+          router.push("/cliente")
+        } else if (role === "cozinheiro") {
+          router.push("/cozinha")
+        } else if (role === "entregador") {
+          router.push("/entregador")
+        } else if (role === "atendente") {
+          router.push("/orders")
+        } else {
+          router.push("/")
+        }
       } else {
         setErrorMessage(result.error || "Credenciais inválidas. Verifique seu usuário e senha.")
       }
@@ -124,10 +136,23 @@ export default function LoginPage() {
             </Button>
           </form>
 
+          {/* Link para o Cardápio do Cliente */}
+          <div className="mt-4 text-center">
+            <Link
+              href="/cliente"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-yellow-400 hover:text-yellow-300 hover:underline"
+            >
+              <span>É cliente? Acesse o Cardápio Digital</span>
+              <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+
           {/* Helper credential notice */}
           <div className="mt-6 border-t border-zinc-800/80 pt-4 text-center">
-            <p className="text-[11px] text-zinc-500">
-              Ambiente Seguro. Acesso inicial: <span className="font-mono text-zinc-300 font-bold">admin</span> / <span className="font-mono text-zinc-300 font-bold">admin</span>
+            <p className="text-[11px] text-zinc-500 leading-relaxed">
+              <span className="text-zinc-400 font-semibold">DevMode:</span> <span className="font-mono text-zinc-300 font-bold">superadmin</span> / <span className="font-mono text-zinc-300 font-bold">superadmin</span>
+              <br />
+              <span className="text-zinc-400 font-semibold">Gerente:</span> <span className="font-mono text-zinc-300 font-bold">admin</span> / <span className="font-mono text-zinc-300 font-bold">admin</span>
             </p>
           </div>
         </div>

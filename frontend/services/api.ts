@@ -35,9 +35,12 @@ async function refreshAccessToken(): Promise<string | null> {
     Cookies.remove('access_token', { path: '/' });
     Cookies.remove('refresh_token', { path: '/' });
     Cookies.remove('user_role', { path: '/' });
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+    const isPublicPage =
+      typeof window !== 'undefined' &&
+      (window.location.pathname.startsWith('/cliente') ||
+        window.location.pathname === '/login' ||
+        window.location.pathname === '/unauthorized');
+    if (!isPublicPage && typeof window !== 'undefined') {
       window.location.href = '/login';
     }
     return null;
@@ -86,7 +89,12 @@ api.interceptors.response.use(
         });
       }
 
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      const isPublicPage =
+        typeof window !== 'undefined' &&
+        (window.location.pathname.startsWith('/cliente') ||
+          window.location.pathname === '/login' ||
+          window.location.pathname === '/unauthorized');
+      if (!isPublicPage && typeof window !== 'undefined') {
         window.location.href = '/login';
       }
     }

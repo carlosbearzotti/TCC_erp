@@ -21,6 +21,7 @@ import api from "@/services/api";
 interface RoleOption {
   key: string;
   label: string;
+  readonly?: boolean;
 }
 
 interface PermissaoItem {
@@ -134,27 +135,32 @@ export default function PermissoesPage() {
 
   // Filtragem
   const filteredModulos = useMemo(() => {
-    if (!matrixData) return [];
+    if (!matrixData || !Array.isArray(matrixData.modulos)) return [];
     if (!searchTerm.trim()) return matrixData.modulos;
 
     const term = searchTerm.toLowerCase();
     return matrixData.modulos
       .map((mod) => ({
         ...mod,
-        permissoes: mod.permissoes.filter(
-          (p) =>
-            p.codigo.toLowerCase().includes(term) ||
-            p.descricao.toLowerCase().includes(term) ||
-            mod.modulo.toLowerCase().includes(term)
-        ),
+        permissoes: Array.isArray(mod.permissoes)
+          ? mod.permissoes.filter(
+              (p) =>
+                p.codigo.toLowerCase().includes(term) ||
+                p.descricao.toLowerCase().includes(term) ||
+                mod.modulo.toLowerCase().includes(term)
+            )
+          : [],
       }))
       .filter((mod) => mod.permissoes.length > 0);
   }, [matrixData, searchTerm]);
 
   // Contadores
   const totalPermissoes = useMemo(() => {
-    if (!matrixData) return 0;
-    return matrixData.modulos.reduce((acc, m) => acc + m.permissoes.length, 0);
+    if (!matrixData || !Array.isArray(matrixData.modulos)) return 0;
+    return matrixData.modulos.reduce(
+      (acc, m) => acc + (Array.isArray(m.permissoes) ? m.permissoes.length : 0),
+      0
+    );
   }, [matrixData]);
 
   const roleColors: Record<string, string> = {
@@ -338,23 +344,28 @@ export default function PermissoesPage() {
                               const hasPerm = perm.roles.includes(role.key);
                               const isUpdating = updatingKey === `${role.key}-${perm.codigo}`;
                               const isLocked = role.key === "administrador" && perm.codigo === "GERENCIAR_USUARIOS";
+                              const isReadonly = !!role.readonly;
 
                               return (
                                 <td key={role.key} className="p-4 text-center align-middle">
                                   <div className="flex items-center justify-center">
                                     <button
                                       type="button"
-                                      disabled={isUpdating || isLocked}
+                                      disabled={isUpdating || isLocked || isReadonly}
                                       onClick={() => handleToggle(role.key, perm.codigo, hasPerm)}
                                       title={
-                                        isLocked
+                                        isReadonly
+                                          ? "Permissões do cliente são pré-definidas e não editáveis"
+                                          : isLocked
                                           ? "Permissão essencial e obrigatória para o Administrador"
                                           : hasPerm
                                           ? `Revogar ${perm.codigo} de ${role.label}`
                                           : `Conceder ${perm.codigo} para ${role.label}`
                                       }
                                       className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 focus:ring-offset-zinc-950 ${
-                                        isLocked
+                                        isReadonly
+                                          ? "cursor-not-allowed bg-zinc-800 opacity-50"
+                                          : isLocked
                                           ? "cursor-not-allowed bg-yellow-400/40 opacity-70"
                                           : isUpdating
                                           ? "bg-zinc-700 opacity-60"

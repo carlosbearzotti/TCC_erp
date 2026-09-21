@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import useSWR, { mutate } from "swr";
 import { api, fetcher } from "@/services/api";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import {
   Users,
   ShieldCheck,
@@ -169,6 +170,7 @@ export default function EquipePage() {
   };
 
   return (
+    <AuthGuard allowedRoles={["administrador"]}>
     <div className="flex-1 space-y-6 p-6 lg:p-8">
       {/* Header da Página */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -235,7 +237,7 @@ export default function EquipePage() {
       {/* ABA 1: EQUIPE & ACESSOS */}
       {activeTab === "equipe" && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {(funcionarios || []).map((func) => {
+          {(Array.isArray(funcionarios) ? funcionarios : []).map((func) => {
             const roleInfo = ROLE_LABELS[func.role] || { label: func.role, color: "bg-zinc-800 text-zinc-300" };
             return (
               <div
@@ -323,7 +325,7 @@ export default function EquipePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/50">
-                {(turnos || []).map((turno) => {
+                {(Array.isArray(turnos) ? turnos : []).map((turno) => {
                   const isAberto = !turno.fim;
                   return (
                     <tr key={turno.id} className="hover:bg-zinc-800/20">
@@ -399,7 +401,7 @@ export default function EquipePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/50">
-                {(auditoria || []).map((log) => (
+                {(Array.isArray(auditoria) ? auditoria : []).map((log) => (
                   <tr key={log.id} className="hover:bg-zinc-800/20">
                     <td className="px-5 py-4 text-xs font-mono text-zinc-400">
                       {new Date(log.data).toLocaleString()}
@@ -528,5 +530,6 @@ export default function EquipePage() {
         </div>
       )}
     </div>
+    </AuthGuard>
   );
 }

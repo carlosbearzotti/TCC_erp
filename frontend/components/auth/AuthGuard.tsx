@@ -7,12 +7,23 @@ import { useAuth, Role } from "@/hooks/useAuth";
 
 const PUBLIC_ROUTES = ["/login", "/unauthorized", "/cliente"];
 
+/** Rotas que o cliente pode acessar (fora as PUBLIC_ROUTES) */
+const CLIENT_ALLOWED_ROUTES = ["/cliente"];
+
 export const ROUTE_ROLES: Record<string, Role[]> = {
-  "/admin": ["administrador"],
-  "/cozinha": ["cozinheiro", "administrador"],
-  "/entregador": ["entregador", "administrador"],
-  "/gestao": ["administrador", "atendente"],
-  "/orders": ["administrador", "atendente"],
+  "/": ["administrador", "superadmin"],
+  "/admin": ["administrador", "superadmin"],
+  "/cozinha": ["cozinheiro", "administrador", "superadmin"],
+  "/entregador": ["entregador", "administrador", "superadmin"],
+  "/gestao": ["administrador", "atendente", "superadmin"],
+  "/orders": ["administrador", "atendente", "superadmin"],
+  "/equipe": ["administrador", "superadmin"],
+  "/permissoes": ["administrador", "superadmin"],
+  "/inventory": ["administrador", "cozinheiro", "superadmin"],
+  "/catalog": ["administrador", "superadmin"],
+  "/finance": ["administrador", "superadmin"],
+  "/rpa": ["administrador", "superadmin"],
+  "/settings": ["administrador", "superadmin"],
 };
 
 interface AuthGuardProps {
@@ -33,9 +44,13 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
 
     // 1. Rota pública: sempre liberada
     if (isPublic) {
-      // Se usuário já logado tentar acessar /login, manda pro dashboard
-      if (isAuthenticated && pathname === "/login") {
-        router.replace("/");
+      // Se usuário já logado tentar acessar /login, redireciona conforme role
+      if (isAuthenticated && user && pathname === "/login") {
+        if (user.role === "cliente") router.replace("/cliente");
+        else if (user.role === "cozinheiro") router.replace("/cozinha");
+        else if (user.role === "entregador") router.replace("/entregador");
+        else if (user.role === "atendente") router.replace("/orders");
+        else router.replace("/");
       }
       return;
     }
@@ -46,12 +61,23 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
       return;
     }
 
-    // Administrador tem acesso universal a todas as telas do sistema
-    if (user.role === "administrador") {
+    // 3. Cliente: só pode acessar /cliente — qualquer outra rota redireciona pra lá
+    if (user.role === "cliente") {
+      const isClientRoute = CLIENT_ALLOWED_ROUTES.some((route) =>
+        pathname.startsWith(route)
+      );
+      if (!isClientRoute) {
+        router.replace("/cliente");
+      }
       return;
     }
 
-    // 3. Verificação explícita por allowedRoles passados na prop do Layout/Componente
+    // 4. Superadmin (DevMode) e Administrador têm acesso universal
+    if (user.role === "superadmin" || user.role === "administrador") {
+      return;
+    }
+
+    // 5. Verificação explícita por allowedRoles passados na prop do Layout/Componente
     if (allowedRoles && allowedRoles.length > 0) {
       if (!allowedRoles.includes(user.role)) {
         router.replace("/unauthorized");
@@ -59,16 +85,28 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
       }
     }
 
-    // 4. Verificação automática baseada no Mapa de Rotas (ROUTE_ROLES)
-    const matchingPrefix = Object.keys(ROUTE_ROLES).find((prefix) =>
-      pathname.startsWith(prefix)
-    );
-
-    if (matchingPrefix) {
-      const allowed = ROUTE_ROLES[matchingPrefix];
-      if (!allowed.includes(user.role)) {
-        router.replace("/unauthorized");
+    // 6. Verificação automática baseada no Mapa de Rotas (ROUTE_ROLES)
+    // Para a rota raiz "/", redireciona cada cargo operacional para seu workspace
+    if (pathname === "/") {
+      const allowed = ROUTE_ROLES["/"];
+      if (allowed && !allowed.includes(user.role)) {
+        if (user.role === "cozinheiro") router.replace("/cozinha");
+        else if (user.role === "entregador") router.replace("/entregador");
+        else if (user.role === "atendente") router.replace("/orders");
+        else router.replace("/unauthorized");
         return;
+      }
+    } else {
+      const matchingPrefix = Object.keys(ROUTE_ROLES)
+        .filter((prefix) => prefix !== "/")
+        .find((prefix) => pathname.startsWith(prefix));
+
+      if (matchingPrefix) {
+        const allowed = ROUTE_ROLES[matchingPrefix];
+        if (!allowed.includes(user.role)) {
+          router.replace("/unauthorized");
+          return;
+        }
       }
     }
   }, [pathname, router, user, isAuthenticated, isLoading, allowedRoles]);

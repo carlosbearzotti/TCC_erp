@@ -31,7 +31,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Dashboard", href: "/", icon: LayoutDashboard, roles: ["administrador"] },
   { label: "Pedidos (PDV)", href: "/orders", icon: ClipboardList, roles: ["administrador", "atendente"] },
   { label: "Gestão do Balcão", href: "/gestao", icon: Receipt, roles: ["administrador", "atendente"] },
   { label: "Financeiro", href: "/finance", icon: DollarSign, roles: ["administrador"] },
@@ -40,7 +40,7 @@ const navItems: NavItem[] = [
   { label: "Estoque", href: "/inventory", icon: Package, roles: ["administrador", "cozinheiro"] },
   { label: "Equipe & Auditoria", href: "/equipe", icon: Users, roles: ["administrador"] },
   { label: "Permissões (RBAC)", href: "/permissoes", icon: ShieldCheck, roles: ["administrador"] },
-  { label: "App do Cliente (Mobile)", href: "/cliente", icon: Smartphone, highlight: true },
+  { label: "Cardápio do Cliente", href: "/cliente", icon: Smartphone, highlight: true },
   { label: "App do Entregador (Mobile)", href: "/entregador", icon: Bike, highlight: true, roles: ["administrador", "entregador"] },
   { label: "Automação (RPA)", href: "/rpa", icon: Bot, roles: ["administrador"] },
   { label: "Configurações", href: "/settings", icon: Settings, roles: ["administrador"] },
@@ -50,22 +50,30 @@ export function Sidebar() {
   const pathname = usePathname();
   const { logout, user } = useAuth();
 
-  if (pathname === "/login") {
+  // Esconder sidebar na tela de login e para clientes (usam o App em /cliente)
+  if (pathname === "/login" || user?.role === "cliente") {
     return null;
   }
 
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-zinc-800/60 bg-zinc-900">
-      <div className="flex items-center gap-3 border-b border-zinc-800/60 px-5 py-5">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-400 text-zinc-950 shadow-lg shadow-yellow-400/20">
-          <ChefHat className="h-5 w-5" />
-        </span>
-        <div className="leading-tight">
-          <p className="text-sm font-bold tracking-tight text-yellow-400">
-            Lanchonete
-          </p>
-          <p className="text-xs font-medium text-zinc-400">& Pastelaria</p>
+      <div className="flex items-center justify-between border-b border-zinc-800/60 px-5 py-5">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-400 text-zinc-950 shadow-lg shadow-yellow-400/20">
+            <ChefHat className="h-5 w-5" />
+          </span>
+          <div className="leading-tight">
+            <p className="text-sm font-bold tracking-tight text-yellow-400">
+              Lanchonete
+            </p>
+            <p className="text-xs font-medium text-zinc-400">& Pastelaria</p>
+          </div>
         </div>
+        {user?.role === "superadmin" && (
+          <span className="rounded-md bg-purple-500/20 border border-purple-500/40 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-purple-400">
+            DevMode
+          </span>
+        )}
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">

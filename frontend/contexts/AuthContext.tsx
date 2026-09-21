@@ -5,7 +5,7 @@ import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 import { api } from "@/services/api";
 
-export type Role = "administrador" | "atendente" | "cozinheiro" | "entregador" | "cliente";
+export type Role = "superadmin" | "administrador" | "atendente" | "cozinheiro" | "entregador" | "cliente";
 
 export interface User {
   id: number;
@@ -24,7 +24,7 @@ interface AuthContextType {
   permissions: string[];
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (username: string, password: string) => Promise<{ success: boolean; user?: User | null; error?: string }>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -139,8 +139,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Busca dados completos do usuário imediatamente após obter o token
       const profile = await fetchCurrentUser();
+      if (profile?.role) {
+        Cookies.set("user_role", profile.role, { expires: 1, path: "/" });
+      }
 
-      return { success: true };
+      return { success: true, user: profile };
     } catch (err: any) {
       console.error("Erro no login:", err);
       const msg =
