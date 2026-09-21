@@ -17,7 +17,7 @@ interface Insumo {
 export function InventoryControl() {
   const { data: insumos, isLoading } = useSWR<Insumo[]>("/inventory/insumos/", fetcher);
 
-  const displayItems = (insumos || []).slice(0, 5);
+  const displayItems = (Array.isArray(insumos) ? insumos : []).slice(0, 5);
 
   return (
     <section className="flex h-full flex-col rounded-2xl border border-zinc-800/60 bg-zinc-900">

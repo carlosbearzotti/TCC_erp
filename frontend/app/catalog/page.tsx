@@ -51,10 +51,14 @@ export default function Catalog() {
     }
   }
 
-  const filteredProducts = produtos?.filter((p) =>
-    p.nome.toLowerCase().includes(search.toLowerCase()) ||
-    (p.categoria_nome && p.categoria_nome.toLowerCase().includes(search.toLowerCase()))
-  ) || []
+  const filteredProducts = Array.isArray(produtos)
+    ? produtos.filter(
+        (p) =>
+          p.nome.toLowerCase().includes(search.toLowerCase()) ||
+          (p.categoria_nome &&
+            p.categoria_nome.toLowerCase().includes(search.toLowerCase()))
+      )
+    : []
 
   return (
     <div className="flex flex-col space-y-6 p-6 bg-zinc-950 text-zinc-100 min-h-full">

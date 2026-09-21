@@ -112,7 +112,7 @@ export default function GestaoBalcaoPage() {
 
   const { data: produtos } = useSWR<Produto[]>("/catalog/produtos/", fetcher)
 
-  const allOrders = pedidos || []
+  const allOrders = Array.isArray(pedidos) ? pedidos : []
 
   // Filter orders by tab
   const filteredOrders = allOrders.filter((order) => {
@@ -820,7 +820,7 @@ export default function GestaoBalcaoPage() {
                 + Adicionar Produto ao Pedido:
               </span>
               <div className="grid grid-cols-2 gap-2 max-h-44 overflow-y-auto p-1">
-                {produtos?.filter((p) => p.disponibilidade).map((prod) => (
+                {(Array.isArray(produtos) ? produtos : []).filter((p) => p.disponibilidade).map((prod) => (
                   <button
                     key={prod.id}
                     onClick={() => handleAddItemToOrder(prod.id)}
@@ -965,7 +965,7 @@ export default function GestaoBalcaoPage() {
             </p>
 
             <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-              {(!entregadoresDisp || entregadoresDisp.length === 0) ? (
+              {(!Array.isArray(entregadoresDisp) || entregadoresDisp.length === 0) ? (
                 <div className="p-4 text-center text-xs text-zinc-500 border border-dashed border-zinc-800 rounded-2xl">
                   Nenhum entregador cadastrado no sistema.
                 </div>

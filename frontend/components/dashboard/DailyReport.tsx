@@ -22,7 +22,7 @@ interface Order {
 export function DailyReport() {
   const { data: orders, isLoading } = useSWR<Order[]>("/orders/", fetcher);
 
-  const validOrders = (orders || []).filter((o) => o.status !== "cancelado");
+  const validOrders = (Array.isArray(orders) ? orders : []).filter((o) => o.status !== "cancelado");
 
   const totalRevenue = validOrders.reduce((sum, o) => sum + Number(o.total), 0);
   const totalOrders = validOrders.length;

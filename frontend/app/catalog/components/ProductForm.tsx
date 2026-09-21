@@ -157,7 +157,7 @@ export function ProductForm({ onClose, productToEdit }: ProductFormProps) {
             >
               {loadingCategorias ? (
                 <option>Carregando categorias...</option>
-              ) : categorias && categorias.length > 0 ? (
+              ) : Array.isArray(categorias) && categorias.length > 0 ? (
                 categorias.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.nome}

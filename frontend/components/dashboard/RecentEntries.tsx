@@ -25,9 +25,11 @@ export function RecentEntries() {
   const { data: movimentacoes, isLoading: loadingMov } = useSWR<Movimentacao[]>("/inventory/movimentacoes/", fetcher);
   const { data: insumos } = useSWR<Insumo[]>("/inventory/insumos/", fetcher);
 
-  const insumosMap = new Map((insumos || []).map((i) => [i.id, i.nome]));
+  const insumosMap = new Map(
+    (Array.isArray(insumos) ? insumos : []).map((i) => [i.id, i.nome])
+  );
 
-  const entries = (movimentacoes || [])
+  const entries = (Array.isArray(movimentacoes) ? movimentacoes : [])
     .filter((m) => m.tipo === "entrada")
     .slice(0, 5);
 

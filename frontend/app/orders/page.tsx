@@ -84,7 +84,7 @@ export default function OrdersPOS() {
     fetcher
   )
 
-  const availableProducts = (produtos || []).filter((p) => p.disponibilidade)
+  const availableProducts = (Array.isArray(produtos) ? produtos : []).filter((p) => p.disponibilidade)
 
   const filteredProducts = availableProducts.filter((p) =>
     p.nome.toLowerCase().includes(search.toLowerCase()) ||

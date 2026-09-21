@@ -69,7 +69,7 @@ export default function DashboardPage() {
 
   const { data: insumos } = useSWR<Insumo[]>("/inventory/insumos/", fetcher);
 
-  const criticalStockCount = (insumos || []).filter(
+  const criticalStockCount = (Array.isArray(insumos) ? insumos : []).filter(
     (i) => Number(i.quantidade_atual) <= Number(i.estoque_minimo)
   ).length;
 
@@ -239,7 +239,7 @@ export default function DashboardPage() {
             <p className="text-xs text-zinc-400 mb-4">Total faturado por dia (R$)</p>
 
             <div className="h-64 w-full">
-              {metricas?.serie_temporal && metricas.serie_temporal.length > 0 ? (
+              {Array.isArray(metricas?.serie_temporal) && metricas.serie_temporal.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={metricas.serie_temporal}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
@@ -271,7 +271,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="h-48 w-full">
-              {metricas?.vendas_por_canal && metricas.vendas_por_canal.length > 0 ? (
+              {Array.isArray(metricas?.vendas_por_canal) && metricas.vendas_por_canal.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -302,7 +302,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="mt-2 flex flex-wrap justify-center gap-3 text-xs">
-              {(metricas?.vendas_por_canal || []).map((canal, idx) => (
+              {(Array.isArray(metricas?.vendas_por_canal) ? metricas.vendas_por_canal : []).map((canal, idx) => (
                 <div key={canal.tipo_atendimento} className="flex items-center gap-1.5">
                   <span
                     className="h-2 w-2 rounded-full"

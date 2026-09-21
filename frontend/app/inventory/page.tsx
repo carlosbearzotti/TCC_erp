@@ -50,9 +50,11 @@ export default function Inventory() {
     }
   }
 
-  const filteredInsumos = insumos?.filter((item) =>
-    item.nome.toLowerCase().includes(search.toLowerCase())
-  ) || []
+  const filteredInsumos = Array.isArray(insumos)
+    ? insumos.filter((item) =>
+        item.nome.toLowerCase().includes(search.toLowerCase())
+      )
+    : []
 
   return (
     <div className="flex flex-col space-y-6 p-6 bg-zinc-950 text-zinc-100 min-h-full">

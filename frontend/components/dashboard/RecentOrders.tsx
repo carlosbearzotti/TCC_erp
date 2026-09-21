@@ -45,7 +45,7 @@ const statusLabels: Record<string, string> = {
 export function RecentOrders() {
   const { data: orders, isLoading } = useSWR<Order[]>("/orders/", fetcher);
 
-  const displayOrders = (orders || []).slice(0, 6);
+  const displayOrders = (Array.isArray(orders) ? orders : []).slice(0, 6);
 
   return (
     <section className="rounded-2xl border border-zinc-800/60 bg-zinc-900">

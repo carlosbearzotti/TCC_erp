@@ -113,7 +113,7 @@ export default function CozinhaKDS() {
     return Math.floor((Date.now() - new Date(dateString).getTime()) / 60000)
   }
 
-  const activeOrders = preparos || []
+  const activeOrders = Array.isArray(preparos) ? preparos : []
 
   const filteredOrders = activeOrders.filter((order) => {
     if (filterStatus === "todos") return true

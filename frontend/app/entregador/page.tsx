@@ -123,11 +123,11 @@ export default function EntregadorApp() {
   );
 
   // Filtros de Pedidos
-  const activeOrders = (entregas || []).filter(
+  const activeOrders = (Array.isArray(entregas) ? entregas : []).filter(
     (p) => ["confirmado", "em_preparo", "pronto", "retornando_base"].includes(p.status)
   );
 
-  const completedOrders = (allOrders || []).filter(
+  const completedOrders = (Array.isArray(allOrders) ? allOrders : []).filter(
     (p) => ["entregue", "finalizado"].includes(p.status) && p.tipo_atendimento === "delivery"
   );
 
@@ -292,7 +292,7 @@ export default function EntregadorApp() {
   };
 
   // Carteira
-  const pedidosDinheiro = (entregas || []).filter((p) => p.payment_method === "dinheiro");
+  const pedidosDinheiro = (Array.isArray(entregas) ? entregas : []).filter((p) => p.payment_method === "dinheiro");
   const totalEmDinheiro = pedidosDinheiro.reduce((sum, p) => sum + Number(p.total), 0);
 
   return (

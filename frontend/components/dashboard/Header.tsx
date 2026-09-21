@@ -92,11 +92,11 @@ export function Header() {
   };
 
   // Filtra notificações reais
-  const criticalStockItems = (insumos || []).filter(
+  const criticalStockItems = (Array.isArray(insumos) ? insumos : []).filter(
     (i) => Number(i.quantidade_atual) <= Number(i.estoque_minimo)
   );
 
-  const pendingOrders = (orders || []).filter(
+  const pendingOrders = (Array.isArray(orders) ? orders : []).filter(
     (o) => o.status === "criado" || o.status === "confirmado" || o.status === "em_preparo"
   );
 

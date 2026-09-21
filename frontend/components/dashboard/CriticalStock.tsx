@@ -17,7 +17,7 @@ interface Insumo {
 export function CriticalStock() {
   const { data: insumos, isLoading } = useSWR<Insumo[]>("/inventory/insumos/", fetcher);
 
-  const criticalItems = (insumos || []).filter(
+  const criticalItems = (Array.isArray(insumos) ? insumos : []).filter(
     (i) => Number(i.quantidade_atual) <= Number(i.estoque_minimo)
   );
 
