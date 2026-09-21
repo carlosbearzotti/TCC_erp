@@ -40,6 +40,7 @@ interface Categoria {
 }
 
 export default function ConsumerApp() {
+  const { isAuthenticated, login, user, logout } = useAuth()
   const [activeTab, setActiveTab] = useState<"home" | "orders" | "cart" | "profile">("home")
   const [selectedCatId, setSelectedCatId] = useState<number | null>(null)
   const [search, setSearch] = useState("")
@@ -47,7 +48,8 @@ export default function ConsumerApp() {
   // API Fetching
   const { data: produtos, isLoading: loadingProdutos } = useSWR<Produto[]>("/catalog/produtos/", fetcher)
   const { data: categorias } = useSWR<Categoria[]>("/catalog/categorias/", fetcher)
-  const { data: userOrders } = useSWR<any[]>("/orders/", fetcher)
+  // Histórico de pedidos apenas se o cliente estiver logado (evita 401 para visitante anônimo)
+  const { data: userOrders } = useSWR<any[]>(isAuthenticated ? "/orders/" : null, fetcher)
 
   // Modal de Detalhes do Produto
   const [selectedProduct, setSelectedProduct] = useState<Produto | null>(null)
@@ -62,21 +64,68 @@ export default function ConsumerApp() {
   const [confirmedOrder, setConfirmedOrder] = useState<any | null>(null)
   const [loadingCheckout, setLoadingCheckout] = useState(false)
 
-  // Autenticação
-  const { isAuthenticated, login, user, logout } = useAuth()
+  // Autenticação & Cadastro
+  const [authMode, setAuthMode] = useState<"login" | "register">("login")
   const [loginUsername, setLoginUsername] = useState("")
   const [loginPassword, setLoginPassword] = useState("")
   const [loginError, setLoginError] = useState("")
   const [loadingLogin, setLoadingLogin] = useState(false)
+
+  const [regName, setRegName] = useState("")
+  const [regUsername, setRegUsername] = useState("")
+  const [regEmail, setRegEmail] = useState("")
+  const [regPassword, setRegPassword] = useState("")
+  const [regError, setRegError] = useState("")
+  const [loadingRegister, setLoadingRegister] = useState(false)
 
   const handleLoginSubmit = async () => {
     setLoadingLogin(true)
     setLoginError("")
     const res = await login(loginUsername, loginPassword)
     if (!res.success) {
-      setLoginError(res.error || "Erro ao fazer login.")
+      setLoginError(res.error || "Usuário ou senha incorretos.")
     }
     setLoadingLogin(false)
+  }
+
+  const handleRegisterSubmit = async () => {
+    if (!regUsername || !regPassword) {
+      setRegError("Preencha usuário e senha.")
+      return
+    }
+    if (regPassword.length < 8) {
+      setRegError("A senha deve ter no mínimo 8 caracteres.")
+      return
+    }
+    setLoadingRegister(true)
+    setRegError("")
+    try {
+      await api.post("/users/register/", {
+        username: regUsername,
+        password: regPassword,
+        email: regEmail || `${regUsername}@cliente.local`,
+        first_name: regName,
+      })
+      const res = await login(regUsername, regPassword)
+      if (!res.success) {
+        setRegError("Conta criada com sucesso! Faça login com suas credenciais.")
+        setLoginUsername(regUsername)
+        setAuthMode("login")
+      }
+    } catch (err: any) {
+      const data = err.response?.data
+      if (data?.username) {
+        setRegError(`Usuário: ${data.username[0]}`)
+      } else if (data?.password) {
+        setRegError(`Senha: ${data.password[0]}`)
+      } else if (data?.email) {
+        setRegError(`E-mail: ${data.email[0]}`)
+      } else {
+        setRegError("Erro ao criar conta. Escolha outro nome de usuário.")
+      }
+    } finally {
+      setLoadingRegister(false)
+    }
   }
 
   // Endereço de entrega
@@ -117,7 +166,7 @@ export default function ConsumerApp() {
   }
 
   // Produtos disponíveis filtrados
-  const availableProducts = (produtos || []).filter((p) => p.disponibilidade)
+  const availableProducts = (Array.isArray(produtos) ? produtos : []).filter((p) => p.disponibilidade)
 
   const filteredProducts = availableProducts.filter((p) => {
     const matchCat = selectedCatId === null || p.categoria === selectedCatId
@@ -206,23 +255,131 @@ export default function ConsumerApp() {
     }
   }
 
-  return (
-    <div className="flex h-full w-full items-center justify-center bg-zinc-950 p-0 sm:p-6">
-      {/* Moldura do Smartphone */}
-      <div className="relative flex h-full max-h-[920px] w-full max-w-md flex-col overflow-hidden rounded-none sm:rounded-[40px] border-0 sm:border-[8px] sm:border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/80">
-        
-        {/* Top Notch Bar */}
-        <div className="flex items-center justify-between bg-zinc-950 px-6 pt-3 pb-2 text-[11px] font-semibold text-zinc-400">
-          <span>09:41</span>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-zinc-400" />
-            <span className="h-2 w-2 rounded-full bg-zinc-400" />
-            <span className="h-2 w-3 rounded-sm border border-zinc-400 bg-zinc-400" />
-          </div>
-        </div>
+  const renderAuthBox = (title: string, subtitle: string, buttonLoginLabel: string = "Entrar") => (
+    <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 space-y-4 max-w-md mx-auto w-full">
+      <div className="text-center">
+        <User className="mx-auto h-8 w-8 text-yellow-400 mb-2" />
+        <h4 className="text-sm font-bold text-zinc-100">
+          {authMode === "login" ? title : "Crie sua Conta"}
+        </h4>
+        <p className="text-[11px] text-zinc-400 mt-1">
+          {authMode === "login"
+            ? subtitle
+            : "Rápido e fácil. Seus dados ficam salvos para seus próximos pedidos."}
+        </p>
+      </div>
 
+      <div className="flex rounded-xl bg-zinc-950 p-1 border border-zinc-800 text-xs">
+        <button
+          type="button"
+          onClick={() => {
+            setAuthMode("login");
+            setLoginError("");
+            setRegError("");
+          }}
+          className={`flex-1 py-1.5 rounded-lg font-semibold transition-all ${
+            authMode === "login"
+              ? "bg-zinc-800 text-yellow-400 shadow"
+              : "text-zinc-400 hover:text-zinc-200"
+          }`}
+        >
+          Já tenho conta
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setAuthMode("register");
+            setLoginError("");
+            setRegError("");
+          }}
+          className={`flex-1 py-1.5 rounded-lg font-semibold transition-all ${
+            authMode === "register"
+              ? "bg-zinc-800 text-yellow-400 shadow"
+              : "text-zinc-400 hover:text-zinc-200"
+          }`}
+        >
+          Criar Conta
+        </button>
+      </div>
+
+      {authMode === "login" ? (
+        <div className="space-y-3">
+          {loginError && (
+            <div className="rounded-xl bg-red-500/10 p-2.5 text-[11px] text-red-400 text-center border border-red-500/20">
+              {loginError}
+            </div>
+          )}
+          <input
+            placeholder="Usuário ou Email"
+            value={loginUsername}
+            onChange={(e) => setLoginUsername(e.target.value)}
+            className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400 focus:outline-none"
+          />
+          <input
+            type="password"
+            placeholder="Senha"
+            value={loginPassword}
+            onChange={(e) => setLoginPassword(e.target.value)}
+            className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400 focus:outline-none"
+          />
+          <button
+            onClick={handleLoginSubmit}
+            disabled={loadingLogin || !loginUsername || !loginPassword}
+            className="w-full rounded-xl bg-yellow-400 py-3 text-xs font-bold text-zinc-950 disabled:opacity-50 flex justify-center items-center h-10 shadow-lg shadow-yellow-400/20 hover:bg-yellow-300 transition-colors"
+          >
+            {loadingLogin ? <RefreshCw className="h-4 w-4 animate-spin" /> : buttonLoginLabel}
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {regError && (
+            <div className="rounded-xl bg-red-500/10 p-2.5 text-[11px] text-red-400 text-center border border-red-500/20">
+              {regError}
+            </div>
+          )}
+          <input
+            placeholder="Seu Nome Completo"
+            value={regName}
+            onChange={(e) => setRegName(e.target.value)}
+            className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400 focus:outline-none"
+          />
+          <input
+            placeholder="Nome de Usuário (login)"
+            value={regUsername}
+            onChange={(e) => setRegUsername(e.target.value)}
+            className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400 focus:outline-none"
+          />
+          <input
+            type="email"
+            placeholder="E-mail (opcional)"
+            value={regEmail}
+            onChange={(e) => setRegEmail(e.target.value)}
+            className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400 focus:outline-none"
+          />
+          <input
+            type="password"
+            placeholder="Crie uma Senha (mínimo 8 caracteres)"
+            value={regPassword}
+            onChange={(e) => setRegPassword(e.target.value)}
+            className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400 focus:outline-none"
+          />
+          <button
+            onClick={handleRegisterSubmit}
+            disabled={loadingRegister || !regUsername || !regPassword}
+            className="w-full rounded-xl bg-yellow-400 py-3 text-xs font-bold text-zinc-950 disabled:opacity-50 flex justify-center items-center h-10 shadow-lg shadow-yellow-400/20 hover:bg-yellow-300 transition-colors"
+          >
+            {loadingRegister ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Criar Conta e Entrar"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen w-full bg-zinc-950 text-zinc-100 flex flex-col">
+      <div className="relative mx-auto flex w-full max-w-5xl flex-1 flex-col pb-24 px-3 sm:px-6 pt-3 sm:pt-6">
         {/* Dynamic App Content */}
-        <div className="flex-1 overflow-y-auto pb-20">
+        <div className="flex-1">
           
           {/* TAB 1: HOME */}
           {activeTab === "home" && (
@@ -280,7 +437,7 @@ export default function ConsumerApp() {
                     >
                       <span>✨ Todos</span>
                     </button>
-                    {categorias.map((cat) => (
+                    {(Array.isArray(categorias) ? categorias : []).map((cat) => (
                       <button
                         key={cat.id}
                         onClick={() => setSelectedCatId(cat.id)}
@@ -320,12 +477,12 @@ export default function ConsumerApp() {
                     <p className="text-[10px] text-zinc-600 mt-0.5">Cadastre produtos pelo painel "Cardápio" para exibi-los aqui.</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-4">
                     {filteredProducts.map((product) => (
                       <div
                         key={product.id}
                         onClick={() => openProductModal(product)}
-                        className="group flex cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900 p-3.5 transition-all hover:border-yellow-400/60 hover:shadow-lg active:scale-95 min-h-[140px]"
+                        className="group flex cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900 p-4 transition-all hover:border-yellow-400/60 hover:shadow-lg active:scale-98 min-h-[150px]"
                       >
                         <div>
                           {product.categoria_nome && (
@@ -547,45 +704,14 @@ export default function ConsumerApp() {
                 </div>
               )}
 
-              {/* ETAPA 3: FORMAS DE PAGAMENTO COM RADIO BUTTONS AMARELOS E LOGIN */}
+              {/* ETAPA 3: FORMAS DE PAGAMENTO COM IDENTIFICAÇÃO OU LOGIN */}
               {checkoutStep === "payment" && !isAuthenticated && (
-                <div className="space-y-4 animate-in fade-in">
-                  <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 space-y-4">
-                    <div className="text-center">
-                      <User className="mx-auto h-8 w-8 text-yellow-400 mb-2" />
-                      <h4 className="text-sm font-bold text-zinc-100">Identifique-se</h4>
-                      <p className="text-[10px] text-zinc-400 mt-1">Faça login para concluir seu pedido.</p>
-                    </div>
-
-                    {loginError && (
-                      <div className="rounded-xl bg-red-500/10 p-2.5 text-[11px] text-red-400 text-center border border-red-500/20">
-                        {loginError}
-                      </div>
-                    )}
-
-                    <div className="space-y-3">
-                      <input
-                        placeholder="Usuário ou Email"
-                        value={loginUsername}
-                        onChange={(e) => setLoginUsername(e.target.value)}
-                        className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400"
-                      />
-                      <input
-                        type="password"
-                        placeholder="Senha"
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400"
-                      />
-                      <button
-                        onClick={handleLoginSubmit}
-                        disabled={loadingLogin || !loginUsername || !loginPassword}
-                        className="w-full rounded-xl bg-yellow-400 py-3 text-xs font-bold text-zinc-950 disabled:opacity-50 flex justify-center items-center h-10"
-                      >
-                        {loadingLogin ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Entrar e Pagar"}
-                      </button>
-                    </div>
-                  </div>
+                <div className="space-y-4 animate-in fade-in py-2">
+                  {renderAuthBox(
+                    "Identifique-se para concluir o pedido",
+                    "Faça login ou crie sua conta para finalizar a compra.",
+                    "Entrar e Pagar"
+                  )}
                 </div>
               )}
 
@@ -738,7 +864,7 @@ export default function ConsumerApp() {
           {activeTab === "orders" && (
             <div className="px-4 pt-2 space-y-3">
               <h3 className="text-sm font-bold text-zinc-100">Histórico de Pedidos</h3>
-              {(!userOrders || userOrders.length === 0) ? (
+              {(!Array.isArray(userOrders) || userOrders.length === 0) ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center text-zinc-500 text-xs">
                   <Clock className="h-10 w-10 text-zinc-700 opacity-40 mb-2" />
                   <p>Nenhum pedido realizado ainda.</p>
@@ -810,38 +936,12 @@ export default function ConsumerApp() {
                   </button>
                 </>
               ) : (
-                <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 space-y-4">
-                  <div className="text-center mb-2">
-                    <h4 className="text-sm font-bold text-zinc-100">Faça login</h4>
-                    <p className="text-[11px] text-zinc-400 mt-1">Acesse seus pedidos e informações salvas.</p>
-                  </div>
-                  {loginError && (
-                    <div className="rounded-xl bg-red-500/10 p-2.5 text-[11px] text-red-400 text-center border border-red-500/20">
-                      {loginError}
-                    </div>
+                <div className="space-y-4 animate-in fade-in py-2">
+                  {renderAuthBox(
+                    "Acesse sua Conta",
+                    "Acesse seus pedidos e informações salvas.",
+                    "Fazer Login"
                   )}
-                  <div className="space-y-3">
-                    <input
-                      placeholder="Usuário ou Email"
-                      value={loginUsername}
-                      onChange={(e) => setLoginUsername(e.target.value)}
-                      className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400"
-                    />
-                    <input
-                      type="password"
-                      placeholder="Senha"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400"
-                    />
-                    <button
-                      onClick={handleLoginSubmit}
-                      disabled={loadingLogin || !loginUsername || !loginPassword}
-                      className="w-full rounded-xl bg-yellow-400 py-3 text-xs font-bold text-zinc-950 disabled:opacity-50 flex justify-center items-center h-10"
-                    >
-                      {loadingLogin ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Fazer Login"}
-                    </button>
-                  </div>
                 </div>
               )}
             </div>
@@ -849,33 +949,35 @@ export default function ConsumerApp() {
         </div>
 
         {/* BOTTOM NAVIGATION BAR */}
-        <nav className="absolute bottom-0 left-0 right-0 flex h-16 items-center justify-around border-t border-zinc-800/80 bg-zinc-950/95 px-4 backdrop-blur-md">
-          {[
-            { id: "home", label: "Início", icon: Home },
-            { id: "orders", label: "Pedidos", icon: Clock },
-            { id: "cart", label: "Carrinho", icon: ShoppingBag, badge: cartItems.length },
-            { id: "profile", label: "Conta", icon: User },
-          ].map((tab) => {
-            const Icon = tab.icon
-            const isActive = activeTab === tab.id
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`relative flex flex-col items-center gap-1 transition-colors ${
-                  isActive ? "text-yellow-400 font-bold" : "text-zinc-500 hover:text-zinc-300"
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-                <span className="text-[10px]">{tab.label}</span>
-                {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className="absolute -top-1 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-yellow-400 text-[9px] font-bold text-zinc-950">
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            )
-          })}
+        <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-zinc-800/80 bg-zinc-950/95 backdrop-blur-md">
+          <div className="mx-auto flex h-16 max-w-5xl items-center justify-around px-4">
+            {[
+              { id: "home", label: "Início", icon: Home },
+              { id: "orders", label: "Pedidos", icon: Clock },
+              { id: "cart", label: "Carrinho", icon: ShoppingBag, badge: cartItems.length },
+              { id: "profile", label: "Conta", icon: User },
+            ].map((tab) => {
+              const Icon = tab.icon
+              const isActive = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`relative flex flex-col items-center gap-1 transition-colors ${
+                    isActive ? "text-yellow-400 font-bold" : "text-zinc-500 hover:text-zinc-300"
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span className="text-[10px]">{tab.label}</span>
+                  {tab.badge !== undefined && tab.badge > 0 && (
+                    <span className="absolute -top-1 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-yellow-400 text-[9px] font-bold text-zinc-950">
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
         </nav>
 
         {/* MODAL DE PRODUTO SELECIONADO */}

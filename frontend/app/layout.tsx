@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 export const metadata: Metadata = {
   title: "Lanchonete & Pastelaria — ERP & Automação",
   description: "Painel administrativo e App Mobile da Lanchonete & Pastelaria",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
