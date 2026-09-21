@@ -2,8 +2,8 @@
 
 from rest_framework.permissions import BasePermission
 
-ROLES_EQUIPE = ('atendente', 'cozinheiro', 'administrador')
-ROLES_FUNCIONARIOS = ('atendente', 'cozinheiro', 'entregador', 'administrador')
+ROLES_EQUIPE = ('atendente', 'cozinheiro', 'administrador', 'superadmin')
+ROLES_FUNCIONARIOS = ('atendente', 'cozinheiro', 'entregador', 'administrador', 'superadmin')
 
 DEFAULT_ROLE_PERMISSIONS = {
     'administrador': {'VER_METRICAS', 'CANCELAR_PEDIDO', 'FECHAR_CAIXA', 'EDITAR_ESTOQUE', 'GERENCIAR_USUARIOS'},
@@ -18,7 +18,7 @@ def tem_perfil(user, roles):
     if user.is_superuser or getattr(user, 'is_staff', False):
         return True
     perfil = getattr(user, 'perfil', None)
-    return perfil is not None and (perfil.role in roles or perfil.role == 'administrador')
+    return perfil is not None and (perfil.role in roles or perfil.role in ('administrador', 'superadmin'))
 
 
 
@@ -85,7 +85,7 @@ def tem_permissao(user, codigo_permissao):
     perfil = getattr(user, 'perfil', None)
     if not perfil:
         return False
-    if perfil.role == 'administrador':
+    if perfil.role in ('administrador', 'superadmin'):
         return True
 
     from .models import RolePermissao

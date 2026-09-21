@@ -6,10 +6,11 @@ User = get_user_model()
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
+    first_name = serializers.CharField(required=False, allow_blank=True, default='')
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'password')
+        fields = ('id', 'username', 'email', 'first_name', 'password')
         read_only_fields = ('id',)
 
     def create(self, validated_data):
@@ -29,6 +30,10 @@ class MeSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_role(self, obj):
+        if hasattr(obj, 'perfil') and obj.perfil and obj.perfil.role == 'superadmin':
+            return 'superadmin'
+        if obj.username == 'superadmin':
+            return 'superadmin'
         if obj.is_superuser or getattr(obj, 'is_staff', False):
             return 'administrador'
         if hasattr(obj, 'perfil') and obj.perfil:
@@ -36,7 +41,8 @@ class MeSerializer(serializers.ModelSerializer):
         return 'cliente'
 
     def get_permissions(self, obj):
-        if obj.is_superuser or getattr(obj, 'is_staff', False) or (hasattr(obj, 'perfil') and obj.perfil.role == 'administrador'):
+        role = self.get_role(obj)
+        if role in ('administrador', 'superadmin') or obj.is_superuser or getattr(obj, 'is_staff', False):
             from .models import Permissao
             return list(Permissao.objects.values_list('codigo', flat=True))
         if hasattr(obj, 'perfil') and obj.perfil:
@@ -51,7 +57,7 @@ class FuncionarioSerializer(serializers.ModelSerializer):
     """Serializer para CRUD administrativo de funcionários com controle de perfis."""
 
     role = serializers.ChoiceField(
-        choices=['administrador', 'atendente', 'cozinheiro', 'entregador', 'cliente'],
+        choices=['administrador', 'atendente', 'cozinheiro', 'entregador'],
         default='atendente',
     )
     is_online = serializers.BooleanField(source='perfil.is_online', read_only=True)

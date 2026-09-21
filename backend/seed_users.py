@@ -8,9 +8,27 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-# 1. Administrador (Admin/Superuser)
+# 1. Superadmin (DevMode / God Mode - Acesso Irrestrito)
 from users.models import Perfil
 
+superadmin_user, created_super = User.objects.get_or_create(
+    username='superadmin',
+    defaults={'email': 'superadmin@example.com'}
+)
+superadmin_user.is_superuser = True
+superadmin_user.is_staff = True
+superadmin_user.set_password('superadmin')
+superadmin_user.save()
+perfil_super, _ = Perfil.objects.get_or_create(user=superadmin_user)
+perfil_super.role = 'superadmin'
+perfil_super.save()
+
+if created_super:
+    print('Superadmin (DevMode) created: superadmin / superadmin')
+else:
+    print('Superadmin (DevMode) verified: superadmin / superadmin')
+
+# 1.1 Administrador (Operação do Estabelecimento / Gerente)
 admin_user, created = User.objects.get_or_create(
     username='admin',
     defaults={'email': 'admin@example.com'}
@@ -24,9 +42,9 @@ perfil.role = 'administrador'
 perfil.save()
 
 if created:
-    print('Admin created: admin / admin')
+    print('Admin (Gerente) created: admin / admin')
 else:
-    print('Admin verified: admin / admin')
+    print('Admin (Gerente) verified: admin / admin')
 
 
 # Função auxiliar para criar usuários regulares e assinalar o perfil

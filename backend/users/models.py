@@ -11,6 +11,7 @@ class Perfil(models.Model):
         ('cozinheiro', 'Cozinheiro'),
         ('entregador', 'Entregador'),
         ('administrador', 'Administrador'),
+        ('superadmin', 'Superadmin (DevMode)'),
     ]
 
     user = models.OneToOneField(

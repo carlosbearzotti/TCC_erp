@@ -4,7 +4,7 @@ from rest_framework import mixins
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
-from users.permissions import tem_permissao
+from users.permissions import tem_permissao, IsEquipe
 
 from .models import Insumo, Movimentacao, ReceitaItem
 from .serializers import InsumoSerializer, MovimentacaoSerializer, ReceitaItemSerializer
@@ -19,7 +19,7 @@ class InsumoViewSet(ModelViewSet):
 
     queryset = Insumo.objects.all()
     serializer_class = InsumoSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsEquipe]
 
     def perform_create(self, serializer):
         if not tem_permissao(self.request.user, 'EDITAR_ESTOQUE'):
@@ -57,7 +57,7 @@ class MovimentacaoViewSet(
 
     queryset = Movimentacao.objects.all()
     serializer_class = MovimentacaoSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsEquipe]
 
     def perform_create(self, serializer):
         if not tem_permissao(self.request.user, 'EDITAR_ESTOQUE'):
@@ -84,13 +84,7 @@ class ReceitaItemViewSet(ModelViewSet):
 
     queryset = ReceitaItem.objects.all()
     serializer_class = ReceitaItemSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_permissions(self):
-        if self.action in ('list', 'retrieve'):
-            return [IsAuthenticated()]
-        from users.permissions import IsEquipe
-        return [IsEquipe()]
+    permission_classes = [IsEquipe]
 
     def get_queryset(self):
         qs = super().get_queryset()

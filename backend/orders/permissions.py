@@ -2,7 +2,7 @@
 
 from rest_framework.permissions import BasePermission
 
-ROLES_OPERACAO = ('atendente', 'cozinheiro', 'administrador')
+ROLES_OPERACAO = ('atendente', 'cozinheiro', 'administrador', 'superadmin')
 
 
 def is_equipe(user):

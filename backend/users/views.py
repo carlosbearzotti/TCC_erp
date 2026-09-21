@@ -35,7 +35,7 @@ class FuncionarioViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdministrador]
 
     def get_queryset(self):
-        qs = User.objects.select_related('perfil').all().order_by('id')
+        qs = User.objects.select_related('perfil').exclude(perfil__role='cliente').order_by('id')
         role = self.request.query_params.get('role')
         if role:
             qs = qs.filter(perfil__role=role)
@@ -108,7 +108,7 @@ class RBACMatrixView(APIView):
 
     def get(self, request):
         roles_data = [
-            {'key': key, 'label': label}
+            {'key': key, 'label': label, 'readonly': key == 'cliente'}
             for key, label in Perfil.ROLE_CHOICES
         ]
 
