@@ -29,8 +29,10 @@ import {
   TrendingUp,
   ShoppingBag,
   Bike,
+  Printer,
 } from "lucide-react"
 import { PaymentModal } from "@/components/orders/PaymentModal"
+import { ReceiptPrintModal } from "@/components/orders/ReceiptPrintModal"
 import { Can } from "@/components/Can"
 
 interface Endereco {
@@ -89,10 +91,12 @@ export default function GestaoBalcaoPage() {
   // Modals state
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<Pedido | null>(null)
   const [selectedOrderForDetails, setSelectedOrderForDetails] = useState<Pedido | null>(null)
+  const [selectedOrderForPrint, setSelectedOrderForPrint] = useState<Pedido | null>(null)
   const [selectedOrderForEdit, setSelectedOrderForEdit] = useState<Pedido | null>(null)
   const [selectedOrderForCancel, setSelectedOrderForCancel] = useState<Pedido | null>(null)
   const [selectedOrderForAssign, setSelectedOrderForAssign] = useState<Pedido | null>(null)
   const [cancelReason, setCancelReason] = useState("")
+  const [returnSupplies, setReturnSupplies] = useState(false)
   const [isCloseShiftOpen, setIsCloseShiftOpen] = useState(false)
   const [loadingAction, setLoadingAction] = useState(false)
   const [actionSuccessMessage, setActionSuccessMessage] = useState("")
@@ -164,13 +168,31 @@ export default function GestaoBalcaoPage() {
       await api.patch(`/orders/${selectedOrderForCancel.id}/`, {
         status: "cancelado",
         cancellation_reason: cancelReason || "Cancelado pelo operador no balcão",
+        // Antes do preparo o estoque volta sozinho; depois, só se o operador marcar
+        ...(["em_preparo", "pronto", "entregue", "retornando_base"].includes(selectedOrderForCancel.status)
+          ? { devolver_insumos: returnSupplies }
+          : {}),
       })
       mutate("/orders/")
       setSelectedOrderForCancel(null)
       setCancelReason("")
+      setReturnSupplies(false)
       showFeedback("Pedido cancelado com sucesso.")
     } catch (err: any) {
       alert(err.response?.data?.detail || "Erro ao cancelar pedido.")
+    } finally {
+      setLoadingAction(false)
+    }
+  }
+
+  const handleResendDelivery = async (orderId: number) => {
+    setLoadingAction(true)
+    try {
+      await api.patch(`/orders/${orderId}/`, { status: "pronto" })
+      mutate("/orders/")
+      showFeedback(`Pedido #${orderId} liberado: atribua um novo entregador.`)
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Erro ao reenviar pedido para entrega.")
     } finally {
       setLoadingAction(false)
     }
@@ -320,7 +342,17 @@ export default function GestaoBalcaoPage() {
                     <div>
                       <strong>Pedido #{ped.id}</strong> ({ped.endereco?.logradouro}, {ped.endereco?.numero}) — Motivo: <span className="font-semibold text-white">{ped.motivo_falha_entrega || "Não informado"}</span>
                     </div>
-                    <span className="text-[11px] text-red-400">Entregador: {ped.entregador_nome || `#${ped.entregador}`}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-red-400">Entregador: {ped.entregador_nome || `#${ped.entregador}`}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleResendDelivery(ped.id)}
+                        disabled={loadingAction}
+                        className="rounded-lg border border-yellow-400/60 bg-yellow-400/10 px-2 py-1 text-[11px] font-bold text-yellow-300 hover:bg-yellow-400 hover:text-zinc-950 disabled:opacity-50"
+                      >
+                        Reenviar entrega
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -562,14 +594,14 @@ export default function GestaoBalcaoPage() {
                             </div>
                             {order.entregador_nome ? (
                               <span className="text-[10px] text-emerald-400 font-semibold">Moto: {order.entregador_nome}</span>
-                            ) : (
+                            ) : ["confirmado", "em_preparo", "pronto", "retornando_base"].includes(order.status) ? (
                               <button
                                 onClick={() => setSelectedOrderForAssign(order)}
                                 className="text-[10px] font-bold text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 rounded px-1.5 py-0.5 hover:bg-yellow-400 hover:text-zinc-950 w-fit transition-colors"
                               >
                                 + Atribuir Moto
                               </button>
-                            )}
+                            ) : null}
                           </div>
                         )}
                       </td>
@@ -617,6 +649,15 @@ export default function GestaoBalcaoPage() {
                             className="p-2 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
                           >
                             <Eye className="h-4 w-4" />
+                          </button>
+
+                          {/* Imprimir Cupom */}
+                          <button
+                            onClick={() => setSelectedOrderForPrint(order)}
+                            title="Imprimir Cupom"
+                            className="p-2 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-yellow-400 hover:bg-zinc-800 transition-colors"
+                          >
+                            <Printer className="h-4 w-4" />
                           </button>
 
                           {/* Editar Itens */}
@@ -754,13 +795,25 @@ export default function GestaoBalcaoPage() {
             </div>
 
             <button
+              onClick={() => setSelectedOrderForPrint(selectedOrderForDetails)}
+              className="w-full mt-4 h-11 rounded-2xl border border-yellow-400/60 bg-yellow-400/10 hover:bg-yellow-400 hover:text-zinc-950 text-yellow-400 font-bold text-xs transition-colors flex items-center justify-center gap-2"
+            >
+              <Printer className="h-4 w-4" />
+              Imprimir Cupom
+            </button>
+
+            <button
               onClick={() => setSelectedOrderForDetails(null)}
-              className="w-full mt-4 h-11 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-xs transition-colors"
+              className="w-full mt-2 h-11 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-xs transition-colors"
             >
               Fechar
             </button>
           </div>
         </div>
+      )}
+
+      {selectedOrderForPrint && (
+        <ReceiptPrintModal order={selectedOrderForPrint} onClose={() => setSelectedOrderForPrint(null)} />
       )}
 
       {/* Edit Items Modal */}
@@ -874,9 +927,23 @@ export default function GestaoBalcaoPage() {
               />
             </div>
 
+            {["em_preparo", "pronto", "entregue", "retornando_base"].includes(selectedOrderForCancel.status) && (
+              <label className="mt-3 flex items-start gap-2 text-left text-[11px] text-zinc-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={returnSupplies}
+                  onChange={(e) => setReturnSupplies(e.target.checked)}
+                  className="mt-0.5 h-3.5 w-3.5 accent-yellow-400"
+                />
+                <span>
+                  Devolver insumos ao estoque (ingredientes não utilizados). Se desmarcado, o consumo é mantido como perda.
+                </span>
+              </label>
+            )}
+
             <div className="flex gap-2.5 mt-5">
               <button
-                onClick={() => setSelectedOrderForCancel(null)}
+                onClick={() => { setSelectedOrderForCancel(null); setReturnSupplies(false) }}
                 className="flex-1 h-11 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-xs transition-colors"
               >
                 Voltar

@@ -2,52 +2,52 @@
 
 import { useState } from "react"
 import { Bot, Zap, CheckCircle2, Play, RefreshCw, AlertTriangle, ShieldCheck } from "lucide-react"
-import { Button } from "../../components/ui/button"
+import api from "../../services/api"
+import { useRpaStatus, formatRun } from "../../hooks/useRpaStatus"
 
 const rpaTasks = [
   {
     id: "rpa-01",
     name: "Robô de Emissão & Sincronização de Pedidos",
     description: "Captura pedidos do app mobile e balcão, enviando automaticamente para a fila de preparo e módulo financeiro.",
-    status: "ativo",
-    lastRun: "Hoje às 10:15",
-    nextRun: "Hoje às 10:45",
     frequency: "A cada 30 min",
-    successRate: "99.8%",
   },
   {
     id: "rpa-02",
     name: "Robô de Baixa Automática & Alerta de Estoque",
     description: "Calcula a dedução de insumos com base nas receitas técnicas e emite alertas caso o estoque atinja nível crítico.",
-    status: "ativo",
-    lastRun: "Hoje às 10:00",
-    nextRun: "Hoje às 11:00",
     frequency: "A cada 1 hora",
-    successRate: "100%",
   },
   {
     id: "rpa-03",
     name: "Robô de Conciliação Financeira & Fechamento",
     description: "Agrupa os lançamentos de Pix, Cartão e Dinheiro, gerando os relatórios de DRE e fluxo de caixa diário.",
-    status: "ativo",
-    lastRun: "Ontem às 23:59",
-    nextRun: "Hoje às 23:59",
     frequency: "Diário (Fim do turno)",
-    successRate: "99.4%",
   },
 ]
 
 export default function RpaPage() {
   const [runningId, setRunningId] = useState<string | null>(null)
   const [successNotice, setSuccessNotice] = useState("")
+  const [errorNotice, setErrorNotice] = useState("")
+  const rpa = useRpaStatus()
 
-  const triggerRpa = (id: string, name: string) => {
+  const triggerRpa = async (id: string, name: string) => {
     setRunningId(id)
-    setTimeout(() => {
+    setSuccessNotice("")
+    setErrorNotice("")
+    try {
+      const res = await api.post("/core/rpa/execute/", { task_id: id })
+      const d = res.data
+      setSuccessNotice(`Robô executado: ${d.mensagem} (${d.tempo_ms} ms). Evidência registrada na auditoria.`)
+      setTimeout(() => setSuccessNotice(""), 8000)
+      rpa.refresh()
+    } catch (err: any) {
+      setErrorNotice(err.response?.data?.detail || `Falha ao executar a rotina "${name}".`)
+      setTimeout(() => setErrorNotice(""), 8000)
+    } finally {
       setRunningId(null)
-      setSuccessNotice(`Rotina "${name}" executada com sucesso!`)
-      setTimeout(() => setSuccessNotice(""), 4000)
-    }, 1500)
+    }
   }
 
   return (
@@ -77,6 +77,13 @@ export default function RpaPage() {
         </div>
       )}
 
+      {errorNotice && (
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 flex items-center gap-3 text-xs text-red-400">
+          <AlertTriangle className="h-5 w-5 shrink-0" />
+          <span className="font-semibold">{errorNotice}</span>
+        </div>
+      )}
+
       {/* Cards de Resumo */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900 p-5">
@@ -93,17 +100,17 @@ export default function RpaPage() {
             <span>Execuções Hoje</span>
             <RefreshCw className="h-4 w-4 text-yellow-400" />
           </div>
-          <p className="mt-2 text-2xl font-black text-zinc-100">48</p>
-          <p className="mt-1 text-xs font-medium text-zinc-400">Sem falhas críticas</p>
+          <p className="mt-2 text-2xl font-black text-zinc-100">{rpa.runsToday}</p>
+          <p className="mt-1 text-xs font-medium text-zinc-400">Registradas na trilha de auditoria</p>
         </div>
 
         <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900 p-5">
           <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span>Tempo Economizado</span>
+            <span>Última Execução</span>
             <ShieldCheck className="h-4 w-4 text-yellow-400" />
           </div>
-          <p className="mt-2 text-2xl font-black text-zinc-100">~ 4.5 h/dia</p>
-          <p className="mt-1 text-xs font-medium text-green-400">Automação de processos</p>
+          <p className="mt-2 text-2xl font-black text-zinc-100">{formatRun(rpa.lastRun)}</p>
+          <p className="mt-1 text-xs font-medium text-green-400">Execução manual (sem agendador)</p>
         </div>
       </div>
 
@@ -131,10 +138,9 @@ export default function RpaPage() {
                 </div>
                 <p className="text-xs text-zinc-400">{task.description}</p>
                 <div className="flex flex-wrap gap-4 pt-1 text-[11px] text-zinc-500">
-                  <span>Frequência: <strong className="text-zinc-300 font-medium">{task.frequency}</strong></span>
-                  <span>Última execução: <strong className="text-zinc-300 font-medium">{task.lastRun}</strong></span>
-                  <span>Próxima: <strong className="text-zinc-300 font-medium">{task.nextRun}</strong></span>
-                  <span>Assertividade: <strong className="text-green-400 font-medium">{task.successRate}</strong></span>
+                  <span>Frequência recomendada: <strong className="text-zinc-300 font-medium">{task.frequency}</strong></span>
+                  <span>Última execução: <strong className="text-zinc-300 font-medium">{formatRun(rpa.lastRunOf(task.id))}</strong></span>
+                  <span>Execuções registradas: <strong className="text-zinc-300 font-medium">{rpa.countOf(task.id)}</strong></span>
                 </div>
               </div>
 

@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import useSWR, { mutate } from "swr"
 import api, { fetcher } from "../../services/api"
 import { Button } from "../../components/ui/button"
+import { ReceiptPrintModal } from "../../components/orders/ReceiptPrintModal"
 import { 
   ChefHat, 
   Clock, 
@@ -15,6 +16,10 @@ import {
   AlertCircle,
   Hash,
   MapPin,
+  Volume2,
+  VolumeX,
+  Bell,
+  Printer,
 } from "lucide-react"
 
 interface ItemPreparo {
@@ -55,12 +60,77 @@ interface Preparo {
 export default function CozinhaKDS() {
   const [filterStatus, setFilterStatus] = useState<string>("todos")
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null)
+  const [printOrder, setPrintOrder] = useState<Preparo | null>(null)
+  const [soundEnabled, setSoundEnabled] = useState(true)
+  const knownIds = useRef<Set<number> | null>(null)
+  const audioCtx = useRef<AudioContext | null>(null)
+  const soundRef = useRef(true)
 
   const { data: preparos, error, isLoading, isValidating } = useSWR<Preparo[]>(
     "/preparation/",
     fetcher,
     { refreshInterval: 4000 }
   )
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("kds-sound")
+      if (saved !== null) {
+        setSoundEnabled(saved === "on")
+        soundRef.current = saved === "on"
+      }
+    } catch {}
+  }, [])
+
+  const playBell = () => {
+    try {
+      const Ctx = window.AudioContext || (window as any).webkitAudioContext
+      if (!Ctx) return
+      const ctx = audioCtx.current ?? (audioCtx.current = new Ctx())
+      if (ctx.state === "suspended") ctx.resume()
+      const now = ctx.currentTime
+      // Dois tons harmônicos de sino: 587Hz (Ré5) e 880Hz (Lá5)
+      ;[587, 880].forEach((freq, i) => {
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        const start = now + i * 0.18
+        osc.type = "sine"
+        osc.frequency.value = freq
+        gain.gain.setValueAtTime(0.0001, start)
+        gain.gain.exponentialRampToValueAtTime(0.4, start + 0.02)
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 1.1)
+        osc.connect(gain).connect(ctx.destination)
+        osc.start(start)
+        osc.stop(start + 1.2)
+      })
+    } catch (err) {
+      console.error("Falha ao tocar alerta sonoro:", err)
+    }
+  }
+
+  const toggleSound = () => {
+    const next = !soundEnabled
+    setSoundEnabled(next)
+    soundRef.current = next
+    try {
+      localStorage.setItem("kds-sound", next ? "on" : "off")
+    } catch {}
+    if (next) playBell() // também desbloqueia o áudio no navegador
+  }
+
+  // Detecta novos pedidos na fila e toca a campainha
+  useEffect(() => {
+    if (!Array.isArray(preparos)) return
+    const current = preparos.filter((p) => p.status === "pendente" || p.status === "em_preparo")
+    if (knownIds.current === null) {
+      knownIds.current = new Set(preparos.map((p) => p.id))
+      return
+    }
+    const known = knownIds.current
+    const hasNew = current.some((p) => !known.has(p.id))
+    preparos.forEach((p) => known.add(p.id))
+    if (hasNew && soundRef.current) playBell()
+  }, [preparos])
 
   const handleStart = async (id: number) => {
     setActionLoadingId(id)
@@ -167,6 +237,23 @@ export default function CozinhaKDS() {
 
           <Button
             variant="outline"
+            onClick={toggleSound}
+            title={soundEnabled ? "Silenciar alerta sonoro" : "Ativar alerta sonoro"}
+            className="border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-300"
+          >
+            {soundEnabled ? <Volume2 className="h-4 w-4 text-green-400" /> : <VolumeX className="h-4 w-4 text-red-400" />}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={playBell}
+            className="border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs"
+          >
+            <Bell className="h-4 w-4 mr-1.5 text-yellow-400" />
+            Testar Som
+          </Button>
+
+          <Button
+            variant="outline"
             size="icon"
             onClick={() => mutate("/preparation/")}
             title="Atualizar fila de preparo"
@@ -256,6 +343,14 @@ export default function CozinhaKDS() {
                           <span className="text-xs font-bold text-zinc-400">
                             #{order.pedido_id}
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => setPrintOrder(order)}
+                            title="Imprimir comanda"
+                            className="p-1.5 rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-yellow-400"
+                          >
+                            <Printer className="h-3.5 w-3.5" />
+                          </button>
                         </div>
                         <div className="mt-2 text-xl font-black text-zinc-100 tracking-tight flex items-center gap-1.5">
                           {order.numero_mesa || (order.tipo_atendimento === "balcao" ? "Balcão" : "Mesa")}
@@ -358,7 +453,14 @@ export default function CozinhaKDS() {
                       </Button>
                     )}
 
-                    {order.status === "pronto" && (
+                    {order.status === "pronto" && order.tipo_atendimento === "delivery" && (
+                      <div className="flex h-11 w-full items-center justify-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 text-xs font-bold text-amber-300">
+                        <Send className="h-4 w-4" />
+                        Aguardando entregador
+                      </div>
+                    )}
+
+                    {order.status === "pronto" && order.tipo_atendimento !== "delivery" && (
                       <Button
                         className="w-full h-11 bg-zinc-800 text-zinc-100 font-bold hover:bg-zinc-700 border border-zinc-700"
                         onClick={() => handleDeliver(order.id)}
@@ -379,6 +481,22 @@ export default function CozinhaKDS() {
           </div>
         )}
       </div>
+
+      {printOrder && (
+        <ReceiptPrintModal
+          variant="cozinha"
+          order={{
+            id: printOrder.pedido_id,
+            numero_comanda: printOrder.numero_comanda,
+            numero_mesa: printOrder.numero_mesa,
+            tipo_atendimento: printOrder.tipo_atendimento,
+            total: printOrder.total,
+            endereco: printOrder.endereco,
+            itens: printOrder.itens,
+          }}
+          onClose={() => setPrintOrder(null)}
+        />
+      )}
     </div>
   )
 }

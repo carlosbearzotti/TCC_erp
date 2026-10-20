@@ -13,10 +13,11 @@ import {
   TableHeader, 
   TableRow 
 } from "../../components/ui/table"
-import { Plus, Search, AlertTriangle, ArrowRightLeft, RefreshCw, AlertCircle, Edit2, Trash2, Package } from "lucide-react"
+import { Plus, Search, AlertTriangle, ArrowRightLeft, RefreshCw, AlertCircle, Edit2, Trash2, Package, Download } from "lucide-react"
 import { InsumoForm } from "./components/InsumoForm"
 import { MovimentacaoForm } from "./components/MovimentacaoForm"
 import { Can } from "../../components/Can"
+import { downloadCsv, csvDate } from "../../lib/csv"
 
 interface Insumo {
   id: number
@@ -24,6 +25,7 @@ interface Insumo {
   unidade_medida: string
   quantidade_atual: number | string
   estoque_minimo: number | string
+  updated_at?: string
 }
 
 export default function Inventory() {
@@ -56,6 +58,26 @@ export default function Inventory() {
       )
     : []
 
+  const exportCsv = () => {
+    const rows: unknown[][] = [
+      ["Código", "Insumo", "Unidade", "Estoque Atual", "Estoque Mínimo", "Status (Normal / Crítico)", "Última Atualização"],
+    ]
+    filteredInsumos.forEach((i) => {
+      const atual = Number(i.quantidade_atual)
+      const min = Number(i.estoque_minimo)
+      rows.push([
+        i.id,
+        i.nome,
+        i.unidade_medida,
+        atual.toFixed(3).replace(".", ","),
+        min.toFixed(3).replace(".", ","),
+        atual <= min ? "Crítico" : "Normal",
+        csvDate(i.updated_at),
+      ])
+    })
+    downloadCsv(`inventario-${new Date().toISOString().slice(0, 10)}.csv`, rows)
+  }
+
   return (
     <div className="flex flex-col space-y-6 p-6 bg-zinc-950 text-zinc-100 min-h-full">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
@@ -76,6 +98,15 @@ export default function Inventory() {
             className="border-zinc-800 bg-zinc-900 hover:bg-zinc-800"
           >
             <RefreshCw className={`h-4 w-4 ${isValidating ? "animate-spin text-yellow-400" : "text-zinc-400"}`} />
+          </Button>
+          <Button
+            variant="outline"
+            className="flex-1 sm:flex-none border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-200"
+            onClick={exportCsv}
+            disabled={filteredInsumos.length === 0}
+          >
+            <Download className="mr-2 h-4 w-4 text-yellow-400" />
+            Exportar Inventário (CSV)
           </Button>
           <Can do="EDITAR_ESTOQUE">
             <Button

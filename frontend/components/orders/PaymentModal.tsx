@@ -11,8 +11,10 @@ import {
   RefreshCw,
   Receipt,
   Calculator,
+  Printer,
 } from "lucide-react"
 import { api } from "@/services/api"
+import { ReceiptPrintModal } from "./ReceiptPrintModal"
 
 interface PaymentModalProps {
   order: {
@@ -46,6 +48,7 @@ export function PaymentModal({ order, onClose, onSuccess }: PaymentModalProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [successData, setSuccessData] = useState<any>(null)
+  const [showReceipt, setShowReceipt] = useState(false)
 
   const numValorRecebido = parseFloat(valorRecebido.replace(",", ".")) || 0
   const troco = paymentMethod === "dinheiro" ? Math.max(0, numValorRecebido - orderTotal) : 0
@@ -173,6 +176,14 @@ export function PaymentModal({ order, onClose, onSuccess }: PaymentModalProps) {
                 </>
               )}
             </div>
+
+            <button
+              onClick={() => setShowReceipt(true)}
+              className="w-full h-11 rounded-2xl border border-yellow-400/60 bg-yellow-400/10 text-yellow-400 font-bold text-sm hover:bg-yellow-400 hover:text-zinc-950 transition-colors flex items-center justify-center gap-2"
+            >
+              <Printer className="h-4 w-4" />
+              Imprimir Cupom do Cliente
+            </button>
 
             <button
               onClick={onClose}
@@ -367,6 +378,13 @@ export function PaymentModal({ order, onClose, onSuccess }: PaymentModalProps) {
           </div>
         )}
       </div>
+
+      {showReceipt && successData && (
+        <ReceiptPrintModal
+          order={{ ...order, ...successData, itens: successData.itens ?? order.itens }}
+          onClose={() => setShowReceipt(false)}
+        />
+      )}
     </div>
   )
 }

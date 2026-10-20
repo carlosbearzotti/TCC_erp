@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import useSWR, { mutate } from "swr"
-import api, { fetcher } from "../../services/api"
+import api, { fetcher, mediaUrl } from "../../services/api"
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { Card, CardContent } from "../../components/ui/card"
@@ -27,6 +27,7 @@ interface Produto {
   preco: number | string
   categoria_nome?: string
   disponibilidade: boolean
+  imagem_url?: string | null
 }
 
 interface CartItem {
@@ -263,10 +264,18 @@ export default function OrdersPOS() {
               {filteredProducts.map((product) => (
                 <div 
                   key={product.id} 
-                  className="group cursor-pointer rounded-2xl border border-zinc-800/80 bg-zinc-900 p-4 transition-all hover:border-yellow-400/60 hover:shadow-lg active:scale-95 flex flex-col justify-between min-h-[130px]"
+                  className="group cursor-pointer overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900 transition-all hover:border-yellow-400/60 hover:shadow-lg active:scale-95 flex flex-col justify-between min-h-[130px]"
                   onClick={() => addToCart(product)}
                 >
-                  <div>
+                  {mediaUrl(product.imagem_url) && (
+                    <img
+                      src={mediaUrl(product.imagem_url)!}
+                      alt={product.nome}
+                      loading="lazy"
+                      className="h-28 w-full object-cover"
+                    />
+                  )}
+                  <div className="p-4 pb-0">
                     {product.categoria_nome && (
                       <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 mb-1.5 inline-block">
                         {product.categoria_nome}
@@ -276,7 +285,7 @@ export default function OrdersPOS() {
                       {product.nome}
                     </div>
                   </div>
-                  <div className="mt-3 flex items-center justify-between">
+                  <div className="m-4 mt-3 flex items-center justify-between">
                     <span className="text-yellow-400 font-extrabold text-base">
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(product.preco))}
                     </span>

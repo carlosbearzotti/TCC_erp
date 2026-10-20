@@ -2,7 +2,9 @@
 
 import { useState } from "react"
 import useSWR, { mutate } from "swr"
-import api, { fetcher } from "../../services/api"
+import api, { fetcher, mediaUrl } from "../../services/api"
+import { useBranding } from "../../hooks/useBranding"
+import { homeFor } from "../../lib/roles"
 import { useAuth } from "../../hooks/useAuth"
 import { 
   Search, 
@@ -32,6 +34,7 @@ interface Produto {
   categoria: number
   categoria_nome?: string
   disponibilidade: boolean
+  imagem_url?: string | null
 }
 
 interface Categoria {
@@ -41,6 +44,7 @@ interface Categoria {
 
 export default function ConsumerApp() {
   const { isAuthenticated, login, user, logout } = useAuth()
+  const { nome: brandName } = useBranding()
   const [activeTab, setActiveTab] = useState<"home" | "orders" | "cart" | "profile">("home")
   const [selectedCatId, setSelectedCatId] = useState<number | null>(null)
   const [search, setSearch] = useState("")
@@ -84,6 +88,10 @@ export default function ConsumerApp() {
     const res = await login(loginUsername, loginPassword)
     if (!res.success) {
       setLoginError(res.error || "Usuário ou senha incorretos.")
+    } else if (res.user && res.user.role !== "cliente") {
+      // Equipe/entregador que entrou pelo app público: segue para o seu próprio ambiente
+      window.location.assign(homeFor(res.user.role))
+      return
     }
     setLoadingLogin(false)
   }
@@ -391,7 +399,7 @@ export default function ConsumerApp() {
                     🥟
                   </div>
                   <div>
-                    <p className="text-xs text-zinc-400">Lanchonete &amp; Pastelaria</p>
+                    <p className="text-xs text-zinc-400">{brandName}</p>
                     <p className="flex items-center text-xs font-bold text-zinc-100">
                       <MapPin className="mr-1 h-3 w-3 text-yellow-400" />
                       Balcão &amp; Delivery
@@ -482,9 +490,17 @@ export default function ConsumerApp() {
                       <div
                         key={product.id}
                         onClick={() => openProductModal(product)}
-                        className="group flex cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900 p-4 transition-all hover:border-yellow-400/60 hover:shadow-lg active:scale-98 min-h-[150px]"
+                        className="group flex cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900 transition-all hover:border-yellow-400/60 hover:shadow-lg active:scale-98 min-h-[150px]"
                       >
-                        <div>
+                        {mediaUrl(product.imagem_url) && (
+                          <img
+                            src={mediaUrl(product.imagem_url)!}
+                            alt={product.nome}
+                            loading="lazy"
+                            className="h-32 w-full object-cover"
+                          />
+                        )}
+                        <div className="p-4 pb-0">
                           {product.categoria_nome && (
                             <span className="text-[9px] font-semibold px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400 mb-1.5 inline-block">
                               {product.categoria_nome}
@@ -499,7 +515,7 @@ export default function ConsumerApp() {
                             </p>
                           )}
                         </div>
-                        <div className="mt-3 flex items-center justify-between">
+                        <div className="m-4 mt-3 flex items-center justify-between">
                           <span className="text-xs font-black text-yellow-400">
                             {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(product.preco))}
                           </span>
@@ -984,7 +1000,13 @@ export default function ConsumerApp() {
         {selectedProduct && (
           <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 backdrop-blur-sm sm:items-center p-0 sm:p-4">
             <div className="relative flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-t-[32px] sm:rounded-3xl border border-zinc-800 bg-zinc-900 shadow-2xl animate-in slide-in-from-bottom duration-300">
-              
+              {mediaUrl(selectedProduct.imagem_url) && (
+                <img
+                  src={mediaUrl(selectedProduct.imagem_url)!}
+                  alt={selectedProduct.nome}
+                  className="h-48 w-full object-cover"
+                />
+              )}
               <div className="p-5 space-y-4">
                 <div className="flex items-start justify-between">
                   <div>

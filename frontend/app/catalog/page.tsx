@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import useSWR, { mutate } from "swr"
-import api, { fetcher } from "../../services/api"
+import api, { fetcher, mediaUrl } from "../../services/api"
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { 
@@ -13,7 +13,7 @@ import {
   TableHeader, 
   TableRow 
 } from "../../components/ui/table"
-import { Plus, Search, Edit2, Trash2, RefreshCw, AlertCircle, UtensilsCrossed, Tags } from "lucide-react"
+import { Plus, Search, Edit2, Trash2, RefreshCw, AlertCircle, UtensilsCrossed, Tags, ImageIcon } from "lucide-react"
 import { ProductForm } from "./components/ProductForm"
 import { CategoryModal } from "./components/CategoryModal"
 
@@ -25,6 +25,7 @@ interface Produto {
   categoria: number
   categoria_nome?: string
   disponibilidade: boolean
+  imagem_url?: string | null
 }
 
 export default function Catalog() {
@@ -155,10 +156,25 @@ export default function Catalog() {
               filteredProducts.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell className="font-semibold text-zinc-100">
-                    <div>{product.nome}</div>
-                    {product.descricao && (
-                      <div className="text-[11px] text-zinc-500 font-normal">{product.descricao}</div>
-                    )}
+                    <div className="flex items-center gap-3">
+                      {mediaUrl(product.imagem_url) ? (
+                        <img
+                          src={mediaUrl(product.imagem_url)!}
+                          alt={product.nome}
+                          className="h-11 w-11 shrink-0 rounded-xl object-cover border border-zinc-800"
+                        />
+                      ) : (
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-zinc-600 border border-zinc-800">
+                          <ImageIcon className="h-5 w-5" />
+                        </div>
+                      )}
+                      <div>
+                        <div>{product.nome}</div>
+                        {product.descricao && (
+                          <div className="text-[11px] text-zinc-500 font-normal">{product.descricao}</div>
+                        )}
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <span className="inline-flex items-center rounded-lg bg-zinc-800/90 px-2.5 py-1 text-xs font-medium text-zinc-300 border border-zinc-700/50">

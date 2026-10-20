@@ -73,9 +73,10 @@ export function middleware(request: NextRequest) {
   }
 
   // 8. Verificação de RBAC (Rotas restritas no Edge)
-  const protectedRoutePrefix = Object.keys(routeRoles).find((prefix) =>
-    pathname.startsWith(prefix)
-  );
+  // Atenção: "/" é tratado à parte (passo 7); casar "/" como prefixo bloquearia TODAS as rotas
+  const protectedRoutePrefix = Object.keys(routeRoles)
+    .filter((prefix) => prefix !== "/")
+    .find((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
 
   if (protectedRoutePrefix && userRole) {
     const allowedRoles = routeRoles[protectedRoutePrefix];

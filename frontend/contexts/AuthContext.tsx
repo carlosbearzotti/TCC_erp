@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 import { api } from "@/services/api";
+import { logoutDestination } from "@/lib/roles";
 
 export type Role = "superadmin" | "administrador" | "atendente" | "cozinheiro" | "entregador" | "cliente";
 
@@ -157,9 +158,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = useCallback(() => {
+    const destino = logoutDestination(user?.role);
     clearAuthData();
-    router.push("/login");
-  }, [clearAuthData, router]);
+    // Navegação completa (não SPA): descarta o cache do roteador e qualquer estado da sessão anterior
+    window.location.assign(destino);
+  }, [clearAuthData, user]);
 
   const refreshUser = async () => {
     await fetchCurrentUser();

@@ -23,7 +23,9 @@ import {
   CheckCircle2,
   AlertCircle,
   FolderPlus,
+  Download,
 } from "lucide-react";
+import { downloadCsv, csvMoney } from "@/lib/csv";
 import {
   AreaChart,
   Area,
@@ -203,6 +205,33 @@ export default function FinancePage() {
     });
   }, [lancamentos, search]);
 
+  const exportCsv = () => {
+    const rows: unknown[][] = [
+      ["Data", "Tipo (Receita/Despesa)", "Categoria", "Descrição", "Forma de Pagamento", "Valor (R$)", "Responsável"],
+    ];
+    let receitas = 0;
+    let despesas = 0;
+    filteredLancamentos.forEach((l) => {
+      const v = Number(l.value) || 0;
+      if (l.type === "receita") receitas += v;
+      else despesas += v;
+      rows.push([
+        l.date.split("-").reverse().join("/"),
+        l.type === "receita" ? "Receita" : "Despesa",
+        l.category_name || "",
+        l.description,
+        PAYMENT_LABELS[l.payment_method] || l.payment_method,
+        csvMoney(v),
+        l.responsible_name || "Sistema",
+      ]);
+    });
+    rows.push([]);
+    rows.push(["", "", "", "", "Total de Receitas", csvMoney(receitas), ""]);
+    rows.push(["", "", "", "", "Total de Despesas", csvMoney(despesas), ""]);
+    rows.push(["", "", "", "", "Saldo Líquido", csvMoney(receitas - despesas), ""]);
+    downloadCsv(`relatorio-financeiro-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+  };
+
   // Dados para Gráfico de Fluxo de Caixa por Data
   const chartData = useMemo(() => {
     const map: Record<string, { date: string; receitas: number; despesas: number }> = {};
@@ -333,7 +362,7 @@ export default function FinancePage() {
   const saldoLiquido = Number(resumo?.saldo) || 0;
 
   return (
-    <div className="flex h-full w-full flex-col overflow-y-auto bg-zinc-950 p-6 text-zinc-100">
+    <div className="flex min-h-full w-full flex-col bg-zinc-950 p-6 text-zinc-100">
       {/* Top Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -591,9 +620,20 @@ export default function FinancePage() {
           <h2 className="text-sm font-bold text-zinc-100">
             Lançamentos ({filteredLancamentos.length})
           </h2>
-          <span className="text-xs text-zinc-500">
-            Exibindo dados sincronizados com o backend
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="hidden sm:inline text-xs text-zinc-500">
+              Exibindo dados sincronizados com o backend
+            </span>
+            <button
+              type="button"
+              onClick={exportCsv}
+              disabled={filteredLancamentos.length === 0}
+              className="flex items-center gap-1.5 rounded-xl border border-yellow-400/60 bg-yellow-400/10 px-3 py-1.5 text-xs font-bold text-yellow-400 hover:bg-yellow-400 hover:text-zinc-950 transition-colors disabled:opacity-40"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Exportar Relatório (CSV)
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">

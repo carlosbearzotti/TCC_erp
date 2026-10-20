@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import { useAuth, Role } from "@/hooks/useAuth";
+import { homeFor } from "@/lib/roles";
 
 const PUBLIC_ROUTES = ["/login", "/unauthorized", "/cliente"];
 
@@ -31,90 +32,64 @@ interface AuthGuardProps {
   allowedRoles?: Role[];
 }
 
+export function resolveRedirect(
+  pathname: string,
+  user: { role: Role } | null,
+  isAuthenticated: boolean,
+  allowedRoles?: Role[]
+): string | null {
+  const isPublic = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
+
+  // 1. Rota pública: liberada (usuário logado em /login vai para o seu ambiente)
+  if (isPublic) {
+    return isAuthenticated && user && pathname === "/login" ? homeFor(user.role) : null;
+  }
+
+  // 2. Não autenticado em rota protegida -> Login
+  if (!isAuthenticated || !user) return "/login";
+
+  // 3. Cliente só acessa /cliente
+  if (user.role === "cliente") {
+    return CLIENT_ALLOWED_ROUTES.some((route) => pathname.startsWith(route)) ? null : "/cliente";
+  }
+
+  // 4. Superadmin (DevMode) e Administrador têm acesso universal
+  if (user.role === "superadmin" || user.role === "administrador") return null;
+
+  // 5. allowedRoles explícito
+  if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+    return "/unauthorized";
+  }
+
+  // 6. Mapa de rotas: a raiz leva cada perfil operacional ao seu ambiente
+  if (pathname === "/") {
+    return ROUTE_ROLES["/"].includes(user.role) ? null : homeFor(user.role);
+  }
+  const matchingPrefix = Object.keys(ROUTE_ROLES)
+    .filter((prefix) => prefix !== "/")
+    .find((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
+  if (matchingPrefix && !ROUTE_ROLES[matchingPrefix].includes(user.role)) {
+    return "/unauthorized";
+  }
+  return null;
+}
+
 export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuth();
 
+  // Calculado durante a renderização: conteúdo proibido nunca chega a ser exibido (sem "piscar" de tela)
+  const redirectTo = isLoading ? null : resolveRedirect(pathname, user, isAuthenticated, allowedRoles);
+
   useEffect(() => {
-    // Se ainda está carregando a verificação de token/usuário, aguarda
-    if (isLoading) return;
-
-    const isPublic = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
-
-    // 1. Rota pública: sempre liberada
-    if (isPublic) {
-      // Se usuário já logado tentar acessar /login, redireciona conforme role
-      if (isAuthenticated && user && pathname === "/login") {
-        if (user.role === "cliente") router.replace("/cliente");
-        else if (user.role === "cozinheiro") router.replace("/cozinha");
-        else if (user.role === "entregador") router.replace("/entregador");
-        else if (user.role === "atendente") router.replace("/orders");
-        else router.replace("/");
-      }
-      return;
-    }
-
-    // 2. Não autenticado em rota protegida -> Login
-    if (!isAuthenticated || !user) {
-      router.replace("/login");
-      return;
-    }
-
-    // 3. Cliente: só pode acessar /cliente — qualquer outra rota redireciona pra lá
-    if (user.role === "cliente") {
-      const isClientRoute = CLIENT_ALLOWED_ROUTES.some((route) =>
-        pathname.startsWith(route)
-      );
-      if (!isClientRoute) {
-        router.replace("/cliente");
-      }
-      return;
-    }
-
-    // 4. Superadmin (DevMode) e Administrador têm acesso universal
-    if (user.role === "superadmin" || user.role === "administrador") {
-      return;
-    }
-
-    // 5. Verificação explícita por allowedRoles passados na prop do Layout/Componente
-    if (allowedRoles && allowedRoles.length > 0) {
-      if (!allowedRoles.includes(user.role)) {
-        router.replace("/unauthorized");
-        return;
-      }
-    }
-
-    // 6. Verificação automática baseada no Mapa de Rotas (ROUTE_ROLES)
-    // Para a rota raiz "/", redireciona cada cargo operacional para seu workspace
-    if (pathname === "/") {
-      const allowed = ROUTE_ROLES["/"];
-      if (allowed && !allowed.includes(user.role)) {
-        if (user.role === "cozinheiro") router.replace("/cozinha");
-        else if (user.role === "entregador") router.replace("/entregador");
-        else if (user.role === "atendente") router.replace("/orders");
-        else router.replace("/unauthorized");
-        return;
-      }
-    } else {
-      const matchingPrefix = Object.keys(ROUTE_ROLES)
-        .filter((prefix) => prefix !== "/")
-        .find((prefix) => pathname.startsWith(prefix));
-
-      if (matchingPrefix) {
-        const allowed = ROUTE_ROLES[matchingPrefix];
-        if (!allowed.includes(user.role)) {
-          router.replace("/unauthorized");
-          return;
-        }
-      }
-    }
-  }, [pathname, router, user, isAuthenticated, isLoading, allowedRoles]);
+    if (redirectTo) router.replace(redirectTo);
+  }, [redirectTo, router]);
 
   const isPublic = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
 
-  // Tela de carregamento suave
-  if (isLoading && !isPublic) {
+  // Tela de carregamento suave (ou bloqueio enquanto o redirecionamento acontece)
+  if ((isLoading && !isPublic) || (redirectTo && !isPublic)) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-zinc-950 text-zinc-400">
         <div className="flex flex-col items-center gap-3">
@@ -123,11 +98,6 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
         </div>
       </div>
     );
-  }
-
-  // Enquanto aguarda redirect de usuário não autenticado em rota protegida
-  if (!isAuthenticated && !isPublic) {
-    return null;
   }
 
   return <>{children}</>;

@@ -12,6 +12,7 @@ import {
   X 
 } from "lucide-react";
 import { fetcher } from "@/services/api";
+import { useBranding } from "@/hooks/useBranding";
 
 interface Insumo {
   id: number;
@@ -39,6 +40,7 @@ interface TurnoResponse {
 }
 
 export function Header() {
+  const { nome: brandName } = useBranding();
   const [currentDateStr, setCurrentDateStr] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
   const [loadingTurno, setLoadingTurno] = useState(false);
@@ -121,7 +123,7 @@ export function Header() {
           <span aria-hidden="true">👋</span>
         </h1>
         <p className="mt-1 text-sm text-zinc-400">
-          Bem-vindo ao painel de automação da Lanchonete &amp; Pastelaria
+          Bem-vindo ao painel de automação da {brandName}
         </p>
       </div>
 

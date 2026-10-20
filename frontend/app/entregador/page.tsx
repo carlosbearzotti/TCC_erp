@@ -3,6 +3,7 @@
 import React, { useState, useRef } from "react";
 import useSWR, { mutate } from "swr";
 import { api, fetcher } from "@/services/api";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Home,
   Clock,
@@ -79,6 +80,7 @@ interface DisponibilidadeResponse {
 }
 
 export default function EntregadorApp() {
+  const { logout } = useAuth();
   const [activeTab, setActiveTab] = useState<"home" | "orders" | "cart" | "profile">("home");
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -696,6 +698,14 @@ export default function EntregadorApp() {
                   </span>
                 </div>
               </div>
+
+              <button
+                type="button"
+                onClick={logout}
+                className="w-full rounded-2xl border border-red-500/30 bg-red-500/10 py-3 text-xs font-bold text-red-400 hover:bg-red-500/20"
+              >
+                Sair da Conta
+              </button>
             </div>
           )}
 

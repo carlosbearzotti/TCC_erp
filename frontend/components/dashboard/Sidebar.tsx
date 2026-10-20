@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -21,6 +22,9 @@ import {
 } from "lucide-react";
 import { useAuth, Role } from "@/hooks/useAuth";
 import { Can } from "@/components/Can";
+import api from "@/services/api";
+import { useRpaStatus, formatRun } from "@/hooks/useRpaStatus";
+import { useBranding } from "@/hooks/useBranding";
 
 interface NavItem {
   label: string;
@@ -40,7 +44,7 @@ const navItems: NavItem[] = [
   { label: "Estoque", href: "/inventory", icon: Package, roles: ["administrador", "cozinheiro"] },
   { label: "Equipe & Auditoria", href: "/equipe", icon: Users, roles: ["administrador"] },
   { label: "Permissões (RBAC)", href: "/permissoes", icon: ShieldCheck, roles: ["administrador"] },
-  { label: "Cardápio do Cliente", href: "/cliente", icon: Smartphone, highlight: true },
+  { label: "Cardápio do Cliente", href: "/cliente", icon: Smartphone, highlight: true, roles: ["administrador"] },
   { label: "App do Entregador (Mobile)", href: "/entregador", icon: Bike, highlight: true, roles: ["administrador", "entregador"] },
   { label: "Automação (RPA)", href: "/rpa", icon: Bot, roles: ["administrador"] },
   { label: "Configurações", href: "/settings", icon: Settings, roles: ["administrador"] },
@@ -49,11 +53,40 @@ const navItems: NavItem[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { logout, user } = useAuth();
+  const { nome: brandName } = useBranding();
+  const [rpaRunning, setRpaRunning] = useState(false);
+  const [rpaMsg, setRpaMsg] = useState("");
+  const isAdmin = user?.role === "administrador" || user?.role === "superadmin";
+  const rpa = useRpaStatus(isAdmin);
 
-  // Esconder sidebar na tela de login e para clientes (usam o App em /cliente)
-  if (pathname === "/login" || user?.role === "cliente") {
+  // Esconder sidebar no login, no app do cliente (/cliente) e para os perfis mobile (cliente e entregador)
+  if (
+    pathname === "/login" ||
+    pathname.startsWith("/cliente") ||
+    pathname.startsWith("/unauthorized") ||
+    user?.role === "cliente" ||
+    user?.role === "entregador"
+  ) {
     return null;
   }
+
+  const runAllRobots = async () => {
+    setRpaRunning(true);
+    setRpaMsg("");
+    try {
+      let alertas = 0;
+      for (const id of ["rpa-01", "rpa-02", "rpa-03"]) {
+        const res = await api.post("/core/rpa/execute/", { task_id: id });
+        alertas += res.data.alertas ?? 0;
+      }
+      setRpaMsg(`3 robôs executados, ${alertas} alerta(s).`);
+      rpa.refresh();
+    } catch {
+      setRpaMsg("Falha ao executar os robôs.");
+    } finally {
+      setRpaRunning(false);
+    }
+  };
 
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-zinc-800/60 bg-zinc-900">
@@ -63,10 +96,10 @@ export function Sidebar() {
             <ChefHat className="h-5 w-5" />
           </span>
           <div className="leading-tight">
-            <p className="text-sm font-bold tracking-tight text-yellow-400">
-              Lanchonete
+            <p className="max-w-[130px] truncate text-sm font-bold tracking-tight text-yellow-400" title={brandName}>
+              {brandName}
             </p>
-            <p className="text-xs font-medium text-zinc-400">& Pastelaria</p>
+            <p className="text-xs font-medium text-zinc-400">ERP & Automação</p>
           </div>
         </div>
         {user?.role === "superadmin" && (
@@ -122,41 +155,37 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-zinc-800/60 p-4">
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-              Status do RPA
-            </p>
-            <Zap className="h-4 w-4 text-yellow-400" />
-          </div>
-
-          <div className="mt-2.5 flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-60" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-400" />
-            </span>
-            <span className="text-sm font-semibold text-green-400">Ativo & Operacional</span>
-          </div>
-
-          <dl className="mt-2.5 space-y-1 text-xs">
-            <div className="flex justify-between">
-              <dt className="text-zinc-500">Última execução</dt>
-              <dd className="text-zinc-300 font-medium">Hoje às 10:15</dd>
+        <Can roles={["administrador", "superadmin"]}>
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                Status do RPA
+              </p>
+              <Zap className="h-4 w-4 text-yellow-400" />
             </div>
-            <div className="flex justify-between">
-              <dt className="text-zinc-500">Próxima execução</dt>
-              <dd className="text-zinc-300 font-medium">Hoje às 10:45</dd>
-            </div>
-          </dl>
 
-          <button
-            type="button"
-            onClick={() => alert("Robô RPA disparado com sucesso! Sincronizando notas e pedidos...")}
-            className="mt-3 w-full rounded-xl border border-yellow-400/60 bg-yellow-400/10 px-3 py-2 text-xs font-semibold text-yellow-400 transition-all hover:bg-yellow-400 hover:text-zinc-950 hover:shadow-lg hover:shadow-yellow-400/20"
-          >
-            Executar RPA agora
-          </button>
-        </div>
+            <dl className="mt-2.5 space-y-1 text-xs">
+              <div className="flex justify-between">
+                <dt className="text-zinc-500">Última execução</dt>
+                <dd className="text-zinc-300 font-medium">{formatRun(rpa.lastRun)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-zinc-500">Execuções hoje</dt>
+                <dd className="text-zinc-300 font-medium">{rpa.runsToday}</dd>
+              </div>
+            </dl>
+
+            <button
+              type="button"
+              onClick={runAllRobots}
+              disabled={rpaRunning}
+              className="mt-3 w-full rounded-xl border border-yellow-400/60 bg-yellow-400/10 px-3 py-2 text-xs font-semibold text-yellow-400 transition-all hover:bg-yellow-400 hover:text-zinc-950 hover:shadow-lg hover:shadow-yellow-400/20 disabled:opacity-50"
+            >
+              {rpaRunning ? "Executando..." : "Executar RPA agora"}
+            </button>
+            {rpaMsg && <p className="mt-2 text-[11px] text-zinc-400">{rpaMsg}</p>}
+          </div>
+        </Can>
 
         {user && (
           <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-zinc-800 bg-zinc-950/80 p-2 px-3">

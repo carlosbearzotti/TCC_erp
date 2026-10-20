@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import api, { BACKEND_ORIGIN } from "../../services/api";
+import { useBranding } from "../../hooks/useBranding";
 import { 
   Settings, 
   Store, 
@@ -22,7 +24,10 @@ export default function SettingsPage() {
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   // Form states
-  const [storeName, setStoreName] = useState("Lanchonete & Pastelaria");
+  const { nome: brandName, refresh: refreshBrand } = useBranding();
+  const [storeName, setStoreName] = useState(brandName);
+  const [saveError, setSaveError] = useState("");
+  useEffect(() => setStoreName(brandName), [brandName]);
   const [storePhone, setStorePhone] = useState("(11) 98765-4321");
   const [storeAddress, setStoreAddress] = useState("Av. Principal, 1234 - Centro");
   const [deliveryFee, setDeliveryFee] = useState("5.00");
@@ -35,8 +40,17 @@ export default function SettingsPage() {
   const [rpaAutoSync, setRpaAutoSync] = useState(true);
   const [rpaStockAlerts, setRpaStockAlerts] = useState(true);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaveError("");
+    try {
+      // Único campo persistido no banco por enquanto: o nome do estabelecimento
+      await api.patch("/core/estabelecimento/", { nome: storeName });
+      refreshBrand();
+    } catch (err: any) {
+      setSaveError(err.response?.data?.nome || "Não foi possível salvar o nome do estabelecimento.");
+      return;
+    }
     setSavedSuccess(true);
     setTimeout(() => {
       setSavedSuccess(false);
@@ -44,7 +58,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-zinc-950 p-6 text-zinc-100">
+    <div className="flex min-h-full min-w-0 flex-1 flex-col bg-zinc-950 p-6 text-zinc-100">
       <div className="mx-auto w-full max-w-5xl space-y-6 pb-12">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800/80 pb-5">
@@ -76,7 +90,13 @@ export default function SettingsPage() {
         {savedSuccess && (
           <div className="flex items-center gap-3 rounded-2xl border border-green-500/30 bg-green-500/10 p-4 text-xs font-medium text-green-400 animate-in fade-in slide-in-from-top-2 duration-300">
             <CheckCircle2 className="h-5 w-5 shrink-0" />
-            <span>Configurações atualizadas e sincronizadas com sucesso no ERP!</span>
+            <span>Nome do estabelecimento atualizado em todo o sistema. Os demais campos desta tela ainda são ilustrativos.</span>
+          </div>
+        )}
+
+        {saveError && (
+          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-xs font-medium text-red-400">
+            {saveError}
           </div>
         )}
 
@@ -120,7 +140,7 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-zinc-300">
-                    Nome Fantasia
+                    Nome Fantasia <span className="text-[10px] text-emerald-400">(salvo no banco — aparece em todo o sistema e nos cupons)</span>
                   </label>
                   <input
                     type="text"
@@ -309,12 +329,12 @@ export default function SettingsPage() {
                 <p className="text-zinc-400">
                   Para gerenciar modelos do sistema em baixo nível, acesse o painel seguro do Django em{" "}
                   <a
-                    href="http://localhost:8000/admin/"
+                    href={`${BACKEND_ORIGIN}/admin/`}
                     target="_blank"
                     rel="noreferrer"
                     className="font-semibold text-yellow-400 underline hover:text-yellow-300"
                   >
-                    http://localhost:8000/admin/
+                    {BACKEND_ORIGIN || (typeof window !== "undefined" ? window.location.origin : "")}/admin/
                   </a>
                 </p>
               </div>

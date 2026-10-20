@@ -3,6 +3,17 @@ import Cookies from 'js-cookie';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/';
 
+/** Converte um caminho de midia (/media/...) em URL utilizavel pelo navegador. */
+export function mediaUrl(path?: string | null): string | null {
+  if (!path) return null;
+  if (/^https?:\/\//.test(path)) return path;
+  const origin = /^https?:\/\//.test(API_BASE) ? new URL(API_BASE).origin : '';
+  return `${origin}${path}`;
+}
+
+/** Origem do backend (para links como o Django Admin). Vazio = mesma origem. */
+export const BACKEND_ORIGIN = /^https?:\/\//.test(API_BASE) ? new URL(API_BASE).origin : '';
+
 const api = axios.create({
   baseURL: API_BASE,
   timeout: 10000,
@@ -102,11 +113,15 @@ api.interceptors.response.use(
   }
 );
 
-export const fetcher = (url: string) =>
-  api.get(url).then((res) => res.data);
+// A API pagina as listagens ({ count, next, previous, results }). As telas esperam arrays,
+// entao o fetcher desembrulha "results" quando presente; objetos comuns passam intactos.
+const unwrap = (data: any) =>
+  data && Array.isArray(data.results) ? data.results : data;
 
-export const fetcherResults = (url: string) =>
-  api.get(url).then((res) => (res.data && Array.isArray(res.data.results) ? res.data.results : res.data));
+export const fetcher = (url: string) =>
+  api.get(url).then((res) => unwrap(res.data));
+
+export const fetcherResults = fetcher;
 
 export { api };
 export default api;

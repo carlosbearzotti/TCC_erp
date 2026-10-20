@@ -1,5 +1,6 @@
 "use client"
 
+import { homeFor } from "@/lib/roles"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import axios from "axios"
@@ -9,10 +10,12 @@ import { Input } from "../../components/ui/input"
 
 import Link from "next/link"
 import { useAuth } from "@/hooks/useAuth"
+import { useBranding } from "@/hooks/useBranding"
 
 export default function LoginPage() {
   const router = useRouter()
   const { login, user } = useAuth()
+  const { nome: brandName } = useBranding()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -32,17 +35,8 @@ export default function LoginPage() {
       const result = await login(username.trim(), password.trim())
       if (result.success) {
         const role = result.user?.role || user?.role
-        if (role === "cliente") {
-          router.push("/cliente")
-        } else if (role === "cozinheiro") {
-          router.push("/cozinha")
-        } else if (role === "entregador") {
-          router.push("/entregador")
-        } else if (role === "atendente") {
-          router.push("/orders")
-        } else {
-          router.push("/")
-        }
+        // Navegação completa: evita reaproveitar redirecionamentos em cache de sessões anteriores
+        window.location.assign(homeFor(role))
       } else {
         setErrorMessage(result.error || "Credenciais inválidas. Verifique seu usuário e senha.")
       }
@@ -67,7 +61,7 @@ export default function LoginPage() {
               <ChefHat className="h-8 w-8" />
             </span>
             <h1 className="text-2xl font-black tracking-tight text-zinc-50">
-              Lanchonete &amp; Pastelaria
+              {brandName}
             </h1>
             <p className="text-xs text-zinc-400 mt-1">
               ERP de Gestão, PDV, KDS e Automação
@@ -147,7 +141,8 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          {/* Helper credential notice */}
+          {/* Credenciais de demonstração: só em builds de desenvolvimento (NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS=true) */}
+          {process.env.NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS === "true" && (
           <div className="mt-6 border-t border-zinc-800/80 pt-4 text-center">
             <p className="text-[11px] text-zinc-500 leading-relaxed">
               <span className="text-zinc-400 font-semibold">DevMode:</span> <span className="font-mono text-zinc-300 font-bold">superadmin</span> / <span className="font-mono text-zinc-300 font-bold">superadmin</span>
@@ -155,6 +150,7 @@ export default function LoginPage() {
               <span className="text-zinc-400 font-semibold">Gerente:</span> <span className="font-mono text-zinc-300 font-bold">admin</span> / <span className="font-mono text-zinc-300 font-bold">admin</span>
             </p>
           </div>
+          )}
         </div>
       </div>
     </div>
