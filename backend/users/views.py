@@ -7,6 +7,8 @@ from rest_framework.exceptions import PermissionDenied
 
 from .models import Perfil, Permissao, RolePermissao
 from .permissions import IsAdministrador, tem_permissao
+from rest_framework.throttling import ScopedRateThrottle
+from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MeSerializer, RegisterSerializer, FuncionarioSerializer
 
 User = get_user_model()
@@ -17,6 +19,15 @@ class RegisterView(generics.CreateAPIView):
 
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'register'
+
+
+class LoginView(TokenObtainPairView):
+    """Login JWT com limite de tentativas por IP."""
+
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'auth'
 
 
 class MeView(generics.RetrieveAPIView):

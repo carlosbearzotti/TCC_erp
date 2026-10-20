@@ -5,7 +5,9 @@ from rest_framework.exceptions import PermissionDenied
 from django.utils import timezone
 from .models import Turno, Auditoria, Configuracao
 from .serializers import TurnoSerializer, AuditoriaSerializer, ConfiguracaoSerializer
-from .services import iniciar_turno, encerrar_turno, confirmar_acerto_caixa
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
+from .services import iniciar_turno, encerrar_turno, confirmar_acerto_caixa, executar_rpa, obter_nome_estabelecimento, registrar_auditoria, NOME_ESTABELECIMENTO_CHAVE
 from users.permissions import IsFuncionario, IsAdministrador, tem_permissao
 from users.models import Perfil
 
@@ -97,3 +99,47 @@ class ConfiguracaoViewSet(viewsets.ModelViewSet):
     serializer_class = ConfiguracaoSerializer
     permission_classes = [IsAdministrador]
     http_method_names = ['get', 'patch', 'head', 'options']
+
+
+class RpaExecuteView(APIView):
+    """Executa uma automacao RPA real e registra a evidencia na auditoria."""
+
+    permission_classes = [IsAdministrador]
+
+    def post(self, request):
+        task_id = request.data.get('task_id')
+        try:
+            resultado = executar_rpa(task_id, request.user)
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(resultado, status=status.HTTP_200_OK)
+
+
+class EstabelecimentoView(APIView):
+    """Nome do estabelecimento (white-label): leitura publica, alteracao somente por administrador."""
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAdministrador()]
+
+    def get(self, request):
+        return Response({'nome': obter_nome_estabelecimento()})
+
+    def patch(self, request):
+        nome = str(request.data.get('nome', '')).strip()
+        if not 2 <= len(nome) <= 60:
+            return Response(
+                {'nome': 'Informe um nome entre 2 e 60 caracteres.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        anterior = obter_nome_estabelecimento()
+        Configuracao.objects.update_or_create(
+            chave=NOME_ESTABELECIMENTO_CHAVE,
+            defaults={'valor': nome, 'descricao': 'Nome exibido no sistema, cardápio e cupons'},
+        )
+        registrar_auditoria(
+            request.user, 'ALTEROU_NOME_ESTABELECIMENTO', 'sys_configuracao', 0,
+            f'Nome alterado de "{anterior}" para "{nome}"',
+        )
+        return Response({'nome': nome})

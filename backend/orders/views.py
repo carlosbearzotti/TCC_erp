@@ -42,6 +42,12 @@ class PedidoDetailView(generics.RetrieveUpdateDestroyAPIView):
             queryset = queryset.filter(cliente=self.request.user)
         return queryset
 
+    def _devolver_insumos(self):
+        valor = self.request.data.get('devolver_insumos')
+        if valor is None:
+            return None
+        return str(valor).strip().lower() in ('true', '1', 'yes')
+
     def perform_update(self, serializer):
         if not is_equipe(self.request.user):
             raise PermissionDenied('Apenas a equipe pode alterar pedidos.')
@@ -50,11 +56,14 @@ class PedidoDetailView(generics.RetrieveUpdateDestroyAPIView):
         if novo_status and novo_status != serializer.instance.status:
             if novo_status == 'cancelado' and not tem_permissao(self.request.user, 'CANCELAR_PEDIDO'):
                 raise PermissionDenied('Você não possui permissão para cancelar pedidos.')
+            if novo_status == 'cancelado' and not (serializer.validated_data.get('cancellation_reason') or '').strip():
+                raise ValidationError({'cancellation_reason': 'Informe o motivo do cancelamento.'})
             transicionar_status(
                 serializer.instance,
                 novo_status,
                 responsavel=self.request.user,
                 motivo=serializer.validated_data.get('cancellation_reason'),
+                devolver_insumos=self._devolver_insumos(),
             )
         else:
             serializer.save()
@@ -310,6 +319,12 @@ class AtribuirEntregadorView(generics.GenericAPIView):
             raise PermissionDenied('Apenas atendentes/gerentes podem atribuir entregadores.')
 
         pedido = self.get_object()
+        if pedido.tipo_atendimento != 'delivery':
+            raise ValidationError('Somente pedidos de delivery podem ter entregador.')
+        if pedido.status not in ('confirmado', 'em_preparo', 'pronto', 'retornando_base'):
+            raise ValidationError(
+                f'Nao e possivel atribuir entregador a um pedido {pedido.get_status_display().lower()}.'
+            )
         entregador_id = request.data.get('entregador_id')
         if not entregador_id:
             raise ValidationError({'entregador_id': 'ID do entregador é obrigatório.'})

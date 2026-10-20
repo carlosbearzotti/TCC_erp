@@ -15,6 +15,12 @@ class FinanceCategorySerializer(serializers.ModelSerializer):
 class LancamentoSerializer(serializers.ModelSerializer):
     """Serializer de lancamentos financeiros com validacao de valor e categoria."""
 
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    responsible_name = serializers.SerializerMethodField()
+
+    def get_responsible_name(self, obj):
+        return obj.responsible.get_username() if obj.responsible else None
+
     class Meta:
         model = Lancamento
         fields = (
@@ -25,7 +31,9 @@ class LancamentoSerializer(serializers.ModelSerializer):
             'date',
             'payment_method',
             'category',
+            'category_name',
             'responsible',
+            'responsible_name',
             'pedido',
             'created_at',
             'updated_at',

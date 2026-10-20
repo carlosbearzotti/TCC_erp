@@ -1,6 +1,7 @@
 """Catalog endpoints."""
 
 from rest_framework.permissions import IsAuthenticated, SAFE_METHODS, BasePermission
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.viewsets import ModelViewSet
 
 from users.permissions import IsEquipe
@@ -31,4 +32,5 @@ class ProdutoViewSet(ModelViewSet):
 
     queryset = Produto.objects.select_related('categoria').all()
     serializer_class = ProdutoSerializer
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
     permission_classes = [IsEquipeOrReadOnly]

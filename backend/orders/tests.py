@@ -288,53 +288,59 @@ class PedidoFinanceIntegrationTests(PedidoBaseTestCase):
         self.product = self._create_product(price='15.00')
         self.client.force_authenticate(user=self.atendente)
 
-    def _entregar_pedido(self, quantity=1):
-        created = self.client.post(
-            reverse('orders:pedido_list_create'),
-            self._pedido_payload(self.product, quantity=quantity),
-            format='json',
-        )
+    def _entregar_pedido(self, quantity=1, payload_extra=None):
+        payload = self._pedido_payload(self.product, quantity=quantity)
+        payload.update(payload_extra or {})
+        created = self.client.post(reverse('orders:pedido_list_create'), payload, format='json')
         pedido = Pedido.objects.get(id=created.data['id'])
         for status in ('confirmado', 'em_preparo', 'pronto', 'entregue'):
             response = self.client.patch(
-                self._pedido_url(pedido.id),
-                {'status': status},
-                format='json',
+                self._pedido_url(pedido.id), {'status': status}, format='json'
             )
-            if status != 'entregue':
-                self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.status_code, 200)
         return created, response
 
-    def test_pedido_entregue_cria_receita(self):
-        created, response = self._entregar_pedido(quantity=2)
+    def _pagar(self, pedido_id, metodo='dinheiro', valor=None, user=None):
+        if user:
+            self.client.force_authenticate(user=user)
+        body = {'payment_method': metodo}
+        if valor is not None:
+            body['valor_recebido'] = valor
+        return self.client.post(f'/api/orders/{pedido_id}/pay/', body, format='json')
+
+    def test_pedido_entregue_ainda_nao_gera_receita(self):
+        self._entregar_pedido()
+
+        self.assertEqual(Lancamento.objects.count(), 0)
+
+    def test_pagamento_cria_receita_com_forma_e_responsavel_do_caixa(self):
+        created, _ = self._entregar_pedido(quantity=2)
+        caixa = self._create_user('caixa_teste', role='atendente')
+
+        response = self._pagar(created.data['id'], metodo='cartao_credito', user=caixa)
 
         self.assertEqual(response.status_code, 200)
         lancamento = Lancamento.objects.get()
         self.assertEqual(lancamento.type, 'receita')
         self.assertEqual(lancamento.value, 30.00)
         self.assertEqual(lancamento.pedido_id, created.data['id'])
+        self.assertEqual(lancamento.payment_method, 'cartao_credito')
+        self.assertEqual(lancamento.responsible, caixa)
 
-    def test_receita_usa_forma_de_pagamento_do_pedido(self):
-        payload = self._pedido_payload(self.product)
-        payload['payment_method'] = 'cartao_credito'
-        created = self.client.post(
-            reverse('orders:pedido_list_create'),
-            payload,
+    def test_cancelar_pedido_entregue_nao_paga_nao_deixa_receita(self):
+        created, _ = self._entregar_pedido()
+        response = self.client.patch(
+            self._pedido_url(created.data['id']),
+            {'status': 'cancelado', 'cancellation_reason': 'teste'},
             format='json',
         )
-        pedido = Pedido.objects.get(id=created.data['id'])
-        for status in ('confirmado', 'em_preparo', 'pronto', 'entregue'):
-            self.client.patch(
-                self._pedido_url(pedido.id),
-                {'status': status},
-                format='json',
-            )
 
-        lancamento = Lancamento.objects.get()
-        self.assertEqual(lancamento.payment_method, 'cartao_credito')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Lancamento.objects.count(), 0)
 
     def test_receita_nao_duplica(self):
-        self._entregar_pedido()
+        created, _ = self._entregar_pedido()
+        self._pagar(created.data['id'])
 
         from finance.services import criar_receita_para_pedido
 
@@ -347,7 +353,8 @@ class PedidoFinanceIntegrationTests(PedidoBaseTestCase):
     def test_receita_aparece_no_resumo_financeiro(self):
         admin = self._create_user('admin_resumo', role='administrador')
 
-        self._entregar_pedido()
+        created, _ = self._entregar_pedido()
+        self._pagar(created.data['id'])
 
         self.client.force_authenticate(user=admin)
         response = self.client.get(reverse('finance_summary'))

@@ -157,3 +157,31 @@ class PreparoOperationsTests(PreparoBaseTestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn('ordem', str(response.data).lower())
+
+class PreparoDeliveryTests(PreparoBaseTestCase):
+    def test_cozinha_nao_entrega_pedido_delivery(self):
+        pedido = self._confirmar_pedido()
+        Pedido.objects.filter(pk=pedido.pk).update(tipo_atendimento='delivery')
+        preparo = Preparo.objects.get(pedido=pedido)
+        self.client.force_authenticate(user=self.cozinheiro)
+
+        response = self.client.post(
+            reverse('preparation:preparo_deliver', kwargs={'pk': preparo.id})
+        )
+
+        self.assertEqual(response.status_code, 400)
+        pedido.refresh_from_db()
+        self.assertEqual(pedido.status, 'confirmado')
+
+    def test_cozinha_entrega_pedido_de_mesa(self):
+        pedido = self._confirmar_pedido()
+        preparo = Preparo.objects.get(pedido=pedido)
+        self.client.force_authenticate(user=self.cozinheiro)
+
+        response = self.client.post(
+            reverse('preparation:preparo_deliver', kwargs={'pk': preparo.id})
+        )
+
+        self.assertEqual(response.status_code, 200)
+        pedido.refresh_from_db()
+        self.assertEqual(pedido.status, 'entregue')

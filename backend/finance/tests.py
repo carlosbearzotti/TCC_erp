@@ -427,3 +427,18 @@ class FinanceSummaryApiTests(FinanceApiTestCase):
         response = self.client.get('/api/finance/summary/')
 
         self.assertEqual(response.status_code, 403)
+
+class LancamentoNomesTests(APITestCase):
+    def test_listagem_inclui_nomes_de_categoria_e_responsavel(self):
+        from django.contrib.auth import get_user_model
+        from django.utils import timezone
+        from .models import FinanceCategory, Lancamento
+        user = get_user_model().objects.create_superuser('fin_admin', 'f@x.com', 'pass12345')
+        cat = FinanceCategory.objects.create(name='Vendas X', type='receita')
+        Lancamento.objects.create(type='receita', value=10, description='d', date=timezone.localdate(),
+                                  category=cat, responsible=user)
+        self.client.force_authenticate(user=user)
+        res = self.client.get('/api/finance/lancamentos/')
+        item = res.data['results'][0]
+        self.assertEqual(item['category_name'], 'Vendas X')
+        self.assertEqual(item['responsible_name'], 'fin_admin')

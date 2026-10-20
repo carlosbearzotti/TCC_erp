@@ -6,6 +6,7 @@ from django.db import transaction
 from rest_framework import serializers
 
 from .models import EnderecoPedido, ItemPedido, Pedido
+from .permissions import is_equipe
 from .services import recalcular_total, validar_transicao
 
 User = get_user_model()
@@ -103,6 +104,16 @@ class PedidoSerializer(serializers.ModelSerializer):
             'comprovante_entrega_url',
             'motivo_falha_entrega',
         )
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # O PIN pertence ao cliente (e a loja): o entregador precisa recebe-lo do cliente, nunca da API
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        pode_ver = bool(user and user.is_authenticated and (is_equipe(user) or instance.cliente_id == user.id))
+        if not pode_ver:
+            data['codigo_pin_entrega'] = None
+        return data
 
     def get_entregador_nome(self, obj):
         if obj.entregador:

@@ -210,3 +210,78 @@ class ProdutoApiTests(APITestCase):
             '/api/catalog/produtos/', self.product_payload(), format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class ProdutoImagemTests(APITestCase):
+    def setUp(self):
+        import tempfile
+        from django.test import override_settings
+        self._media = tempfile.TemporaryDirectory()
+        self._override = override_settings(MEDIA_ROOT=self._media.name)
+        self._override.enable()
+        self.addCleanup(self._override.disable)
+        self.addCleanup(self._media.cleanup)
+
+        self.user = User.objects.create_user(username='adm_img', password='senha-segura-123')
+        self.user.perfil.role = 'administrador'
+        self.user.perfil.save()
+        self.client.force_authenticate(self.user)
+        self.categoria = Categoria.objects.create(nome='Pasteis', status=True)
+
+    def make_image(self, name='foto.png', fmt='PNG'):
+        import io
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        buf = io.BytesIO()
+        Image.new('RGB', (20, 20), 'red').save(buf, fmt)
+        return SimpleUploadedFile(name, buf.getvalue(), content_type='image/png')
+
+    def payload(self, **extra):
+        data = {'nome': 'Pastel', 'preco': '8.00', 'categoria': self.categoria.id, 'disponibilidade': 'true'}
+        data.update(extra)
+        return data
+
+    def test_upload_na_criacao_retorna_url(self):
+        res = self.client.post('/api/catalog/produtos/', self.payload(imagem=self.make_image()), format='multipart')
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(res.data['imagem_url'].startswith('/media/produtos/'))
+        self.assertNotIn('imagem', res.data)
+
+    def test_produto_sem_imagem_tem_url_nula(self):
+        res = self.client.post('/api/catalog/produtos/', self.payload(), format='multipart')
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertIsNone(res.data['imagem_url'])
+
+    def test_arquivo_que_nao_e_imagem_e_rejeitado(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        fake = SimpleUploadedFile('x.png', b'nao sou imagem', content_type='image/png')
+        res = self.client.post('/api/catalog/produtos/', self.payload(imagem=fake), format='multipart')
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_formato_nao_permitido_e_rejeitado(self):
+        res = self.client.post(
+            '/api/catalog/produtos/', self.payload(imagem=self.make_image('a.gif', 'GIF')), format='multipart'
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_substituir_e_remover_imagem(self):
+        res = self.client.post('/api/catalog/produtos/', self.payload(imagem=self.make_image()), format='multipart')
+        pid = res.data['id']
+        primeira = Produto.objects.get(pk=pid).imagem.path
+        res = self.client.put(
+            f'/api/catalog/produtos/{pid}/', self.payload(imagem=self.make_image('b.png')), format='multipart'
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        import os
+        self.assertFalse(os.path.exists(primeira))
+        res = self.client.put(
+            f'/api/catalog/produtos/{pid}/', self.payload(remover_imagem='true'), format='multipart'
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIsNone(res.data['imagem_url'])
+
+    def test_put_sem_imagem_preserva_a_existente(self):
+        res = self.client.post('/api/catalog/produtos/', self.payload(imagem=self.make_image()), format='multipart')
+        pid = res.data['id']
+        res = self.client.put(f'/api/catalog/produtos/{pid}/', self.payload(nome='Pastel 2'), format='multipart')
+        self.assertTrue(res.data['imagem_url'])

@@ -24,11 +24,24 @@ echo "==> [Entrypoint] PostgreSQL pronto e conectado!"
 echo "==> [Entrypoint] 1. Aplicando Migrations..."
 python manage.py migrate --noinput
 
+echo "==> [Entrypoint] 1.1 Tabela de cache..."
+python manage.py createcachetable
+
 echo "==> [Entrypoint] 2. Aplicando Seed de Permissões (RBAC)..."
 python manage.py seed_permissions
 
-echo "==> [Entrypoint] 3. Aplicando Seed de Usuários e Perfis..."
-python seed_users.py
+if [ "$DEBUG" != "True" ] && [ "$DEBUG" != "true" ]; then
+    echo "==> [Entrypoint] 3. Coletando arquivos estáticos..."
+    python manage.py collectstatic --noinput
+fi
+
+if [ "$SEED_DEMO_USERS" = "true" ]; then
+    echo "==> [Entrypoint] 4. Seed de usuários de DEMONSTRAÇÃO (somente desenvolvimento!)..."
+    python seed_users.py
+else
+    echo "==> [Entrypoint] 4. Garantindo administrador inicial..."
+    python manage.py create_initial_admin
+fi
 
 echo "==> [Entrypoint] Inicialização concluída com sucesso! Iniciando comando principal..."
 exec "$@"

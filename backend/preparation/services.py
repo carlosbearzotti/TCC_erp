@@ -97,6 +97,11 @@ def entregar_preparo(preparo, responsavel):
     """Marca um pedido pronto como entregue ao cliente."""
     if preparo.status not in ('pronto', 'em_preparo', 'pendente'):
         raise ValidationError('Preparo cancelado ou ja entregue.')
+    if preparo.pedido.tipo_atendimento == 'delivery':
+        raise ValidationError(
+            'Pedidos de delivery sao entregues pelo entregador (confirmacao por PIN); '
+            'a cozinha encerra o fluxo em "Pronto".'
+        )
 
     with transaction.atomic():
         if preparo.pedido.status == 'pendente' or preparo.pedido.status == 'confirmado':

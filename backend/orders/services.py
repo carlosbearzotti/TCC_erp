@@ -18,7 +18,7 @@ TRANSICOES_VALIDAS = {
     'em_preparo': {'pronto', 'finalizado', 'cancelado'},
     'pronto': {'entregue', 'retornando_base', 'finalizado', 'cancelado'},
     'entregue': {'finalizado', 'cancelado'},
-    'retornando_base': {'finalizado', 'cancelado'},
+    'retornando_base': {'pronto', 'finalizado', 'cancelado'},
     'finalizado': {'arquivado'},
     'cancelado': {'arquivado'},
     'arquivado': set(),
@@ -112,11 +112,16 @@ def devolver_estoque(pedido, responsavel=None):
         )
 
 
-def transicionar_status(pedido, novo_status, responsavel=None, motivo=None):
+def transicionar_status(pedido, novo_status, responsavel=None, motivo=None, devolver_insumos=None):
     """Altera o status do pedido em uma unica transacao.
 
     Sincroniza a fila de preparo, registra timestamps de confirmacao e
-    cancelamento e cria a receita financeira quando o pedido e entregue.
+    cancelamento e cria a receita financeira quando o pedido e finalizado (pago).
+
+    No cancelamento, os insumos voltam ao estoque automaticamente se o preparo ainda
+    nao comecou; depois disso so voltam se o operador informar devolver_insumos=True
+    (ex.: ingredientes nao utilizados). Falha de entrega pode ser reenviada
+    (retornando_base -> pronto), liberando o pedido para novo entregador.
     """
     validar_transicao(pedido, novo_status)
 
@@ -129,6 +134,12 @@ def transicionar_status(pedido, novo_status, responsavel=None, motivo=None):
         pedido.status = novo_status
         update_fields = ['status', 'updated_at']
 
+        if status_anterior == 'retornando_base' and novo_status == 'pronto':
+            # Reenvio apos falha: o pedido volta a espera de um novo entregador (PIN do cliente e mantido)
+            pedido.entregador = None
+            pedido.motivo_falha_entrega = None
+            update_fields.extend(['entregador', 'motivo_falha_entrega'])
+
         if novo_status == 'confirmado' and pedido.confirmed_at is None:
             pedido.confirmed_at = timezone.now()
             update_fields.append('confirmed_at')
@@ -140,9 +151,10 @@ def transicionar_status(pedido, novo_status, responsavel=None, motivo=None):
             pedido.cancellation_reason = motivo or ''
             update_fields.extend(['cancelled_at', 'cancelled_by', 'cancellation_reason'])
 
-            # Devolve insumos ao estoque APENAS se o cancelamento ocorrer antes do início do preparo
-            # (se o pedido já começou o preparo, os ingredientes são considerados consumidos/perda)
-            if status_anterior == 'confirmado' and pedido.confirmed_at is not None:
+            # Antes do preparo: devolve automaticamente. Depois: considerado consumo/perda,
+            # a menos que o operador marque explicitamente a devolucao.
+            devolver = devolver_insumos if devolver_insumos is not None else status_anterior == 'confirmado'
+            if devolver and pedido.confirmed_at is not None:
                 devolver_estoque(pedido, responsavel)
 
             # Se houver lançamento financeiro gerado para este pedido, estorna removendo a receita
@@ -163,6 +175,19 @@ def transicionar_status(pedido, novo_status, responsavel=None, motivo=None):
 
         pedido.save(update_fields=update_fields)
 
+        if status_anterior == 'retornando_base' and novo_status == 'pronto':
+            try:
+                from core.services import registrar_auditoria
+                registrar_auditoria(
+                    user=responsavel,
+                    acao='REENVIOU_ENTREGA',
+                    entidade='orders_pedido',
+                    entidade_id=pedido.id,
+                    detalhes=f'Pedido #{pedido.id} liberado para nova tentativa de entrega',
+                )
+            except Exception:
+                pass
+
         if novo_status == 'confirmado':
             Preparo.objects.get_or_create(
                 pedido=pedido, defaults={'status': 'pendente'}
@@ -170,7 +195,8 @@ def transicionar_status(pedido, novo_status, responsavel=None, motivo=None):
         elif novo_status in STATUS_PREPARO:
             Preparo.objects.filter(pedido=pedido).update(status=STATUS_PREPARO[novo_status])
 
-        if novo_status in ('entregue', 'finalizado'):
+        # A receita nasce no pagamento (finalizado), atribuida a quem recebeu (caixa)
+        if novo_status == 'finalizado':
             from finance.services import criar_receita_para_pedido
 
             criar_receita_para_pedido(pedido, responsavel=responsavel)

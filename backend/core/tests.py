@@ -63,3 +63,88 @@ class CoreModuleTests(APITestCase):
 
         limite = Configuracao.objects.get(chave='LIMITE_PEDIDOS_ENTREGADOR')
         self.assertEqual(limite.valor, '4')
+
+
+class RpaExecuteTests(APITestCase):
+    URL = '/api/core/rpa/execute/'
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser('admin_rpa', 'a@rpa.com', 'pass123')
+        self.atendente = User.objects.create_user('atend_rpa', 'b@rpa.com', 'pass123')
+        self.atendente.perfil.role = 'atendente'
+        self.atendente.perfil.save()
+
+    def test_requer_administrador(self):
+        self.client.force_authenticate(user=self.atendente)
+        res = self.client.post(self.URL, {'task_id': 'rpa-01'})
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_task_invalida(self):
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.post(self.URL, {'task_id': 'xxx'})
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_rpa01_cria_preparo_faltante(self):
+        from orders.models import Pedido
+        from preparation.models import Preparo
+        pedido = Pedido.objects.create(status='confirmado')
+        Preparo.objects.filter(pedido=pedido).delete()
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.post(self.URL, {'task_id': 'rpa-01'})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['alertas'], 1)
+        self.assertTrue(Preparo.objects.filter(pedido=pedido, status='pendente').exists())
+        self.assertTrue(Auditoria.objects.filter(acao='RPA_SINCRONIZACAO_PEDIDOS').exists())
+
+    def test_rpa02_identifica_estoque_critico(self):
+        from inventory.models import Insumo
+        Insumo.objects.create(nome='Farinha', unidade_medida='KG', quantidade_atual=1, estoque_minimo=5)
+        Insumo.objects.create(nome='Queijo', unidade_medida='KG', quantidade_atual=10, estoque_minimo=5)
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.post(self.URL, {'task_id': 'rpa-02'})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['itens_auditados'], 2)
+        self.assertEqual(res.data['insumos_criticos'], ['Farinha'])
+        self.assertIn('Farinha', Auditoria.objects.get(acao='RPA_ALERTA_ESTOQUE').detalhes)
+
+    def test_rpa03_concilia_caixa(self):
+        from django.utils import timezone
+        from finance.models import FinanceCategory, Lancamento
+        cat = FinanceCategory.objects.create(name='Vendas RPA', type='receita')
+        Lancamento.objects.create(type='receita', value=Decimal('50.00'), description='x',
+                                  date=timezone.localdate(), payment_method='dinheiro', category=cat)
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.post(self.URL, {'task_id': 'rpa-03'})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['receitas'], '50.00')
+        self.assertEqual(res.data['divergencia_dinheiro'], '50.00')
+        self.assertTrue(Auditoria.objects.filter(acao='RPA_CONCILIACAO_CAIXA').exists())
+
+
+class EstabelecimentoTests(APITestCase):
+    URL = '/api/core/estabelecimento/'
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser('adm_nome', 'n@x.com', 'pass12345')
+        self.atend = User.objects.create_user('atend_nome', 'a@x.com', 'pass12345')
+        self.atend.perfil.role = 'atendente'
+        self.atend.perfil.save()
+
+    def test_leitura_publica_com_nome_padrao(self):
+        res = self.client.get(self.URL)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['nome'], 'PL Lanchonete & Pastelaria')
+
+    def test_admin_altera_nome_e_gera_auditoria(self):
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.patch(self.URL, {'nome': 'Cantina do Zé'}, format='json')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.client.force_authenticate(user=None)
+        self.assertEqual(self.client.get(self.URL).data['nome'], 'Cantina do Zé')
+        self.assertTrue(Auditoria.objects.filter(acao='ALTEROU_NOME_ESTABELECIMENTO').exists())
+
+    def test_nao_admin_nao_altera_e_nome_invalido(self):
+        self.client.force_authenticate(user=self.atend)
+        self.assertEqual(self.client.patch(self.URL, {'nome': 'X Y'}, format='json').status_code, 403)
+        self.client.force_authenticate(user=self.admin)
+        self.assertEqual(self.client.patch(self.URL, {'nome': ' '}, format='json').status_code, 400)
