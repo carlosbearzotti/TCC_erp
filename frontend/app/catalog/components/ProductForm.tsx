@@ -210,10 +210,10 @@ export function ProductForm({ onClose, productToEdit }: ProductFormProps) {
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="mb-1.5 block font-semibold text-zinc-300">
+            <label htmlFor="f-appcatalogcomponentsProductForm-1" className="mb-1.5 block font-semibold text-zinc-300">
               Nome do Produto
             </label>
-            <Input
+            <Input id="f-appcatalogcomponentsProductForm-1"
               required
               placeholder="Ex: Pastel de Carne Especial"
               value={nome}
@@ -222,10 +222,10 @@ export function ProductForm({ onClose, productToEdit }: ProductFormProps) {
           </div>
 
           <div>
-            <label className="mb-1.5 block font-semibold text-zinc-300">
+            <label htmlFor="f-appcatalogcomponentsProductForm-2" className="mb-1.5 block font-semibold text-zinc-300">
               Preço de Venda (R$)
             </label>
-            <Input
+            <Input id="f-appcatalogcomponentsProductForm-2"
               required
               type="number"
               step="0.01"
@@ -244,7 +244,7 @@ export function ProductForm({ onClose, productToEdit }: ProductFormProps) {
               <button
                 type="button"
                 onClick={() => setShowCatModal(true)}
-                className="text-[11px] font-semibold text-yellow-400 hover:text-yellow-300 flex items-center gap-1 transition-colors"
+                className="text-xs font-semibold text-yellow-400 hover:text-yellow-300 flex items-center gap-1 transition-colors"
               >
                 <Plus className="h-3 w-3" />
                 Novo Tipo
@@ -270,10 +270,10 @@ export function ProductForm({ onClose, productToEdit }: ProductFormProps) {
           </div>
 
           <div>
-            <label className="mb-1.5 block font-semibold text-zinc-300">
+            <label htmlFor="f-appcatalogcomponentsProductForm-3" className="mb-1.5 block font-semibold text-zinc-300">
               Descrição (Opcional)
             </label>
-            <Input
+            <Input id="f-appcatalogcomponentsProductForm-3"
               placeholder="Ex: Recheio caprichado com carne e azeitona"
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
@@ -293,7 +293,7 @@ export function ProductForm({ onClose, productToEdit }: ProductFormProps) {
                 </div>
               )}
               <div className="flex flex-col gap-1.5">
-                <label className="cursor-pointer rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-[11px] font-semibold text-zinc-300 hover:border-yellow-400/60">
+                <label className="cursor-pointer rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:border-yellow-400/60">
                   {preview ? "Trocar imagem" : "Selecionar imagem"}
                   <input
                     type="file"
@@ -306,12 +306,12 @@ export function ProductForm({ onClose, productToEdit }: ProductFormProps) {
                   <button
                     type="button"
                     onClick={clearImage}
-                    className="flex items-center gap-1 text-[11px] font-semibold text-red-400 hover:text-red-300"
+                    className="flex items-center gap-1 text-xs font-semibold text-red-400 hover:text-red-300"
                   >
                     <Trash2 className="h-3 w-3" /> Remover
                   </button>
                 )}
-                <span className="text-[10px] text-zinc-500">JPG, PNG ou WebP, até 5 MB</span>
+                <span className="text-xs text-zinc-500">JPG, PNG ou WebP, até 5 MB</span>
               </div>
             </div>
           </div>
@@ -325,16 +325,16 @@ export function ProductForm({ onClose, productToEdit }: ProductFormProps) {
                 type="button"
                 onClick={addFichaRow}
                 disabled={!insumos || insumos.length === 0}
-                className="text-[11px] font-semibold text-yellow-400 hover:text-yellow-300 flex items-center gap-1 disabled:opacity-40"
+                className="text-xs font-semibold text-yellow-400 hover:text-yellow-300 flex items-center gap-1 disabled:opacity-40"
               >
                 <Plus className="h-3 w-3" /> Insumo
               </button>
             </div>
-            <p className="text-[10px] text-zinc-500 mb-2">
+            <p className="text-xs text-zinc-500 mb-2">
               Quantidade de cada insumo usada em 1 unidade. O estoque é baixado automaticamente quando o pedido é confirmado.
             </p>
             {Array.isArray(insumos) && insumos.length === 0 && (
-              <p className="text-[10px] text-amber-400">Cadastre insumos no módulo Estoque para montar a ficha técnica.</p>
+              <p className="text-xs text-amber-400">Cadastre insumos no módulo Estoque para montar a ficha técnica.</p>
             )}
             <div className="space-y-2">
               {ficha.map((row) => {
@@ -360,7 +360,7 @@ export function ProductForm({ onClose, productToEdit }: ProductFormProps) {
                       onChange={(e) => updateFicha(row.key, { quantidade: e.target.value })}
                       className="h-9 w-20 rounded-lg border border-zinc-800 bg-zinc-950 px-2 text-xs text-zinc-100 focus:border-yellow-400 focus:outline-none"
                     />
-                    <span className="w-6 text-[10px] text-zinc-500">{ins?.unidade_medida}</span>
+                    <span className="w-6 text-xs text-zinc-500">{ins?.unidade_medida}</span>
                     <button type="button" onClick={() => removeFicha(row.key)} className="text-red-400 hover:text-red-300" title="Remover">
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

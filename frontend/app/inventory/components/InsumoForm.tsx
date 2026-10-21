@@ -80,10 +80,10 @@ export function InsumoForm({ onClose, insumoToEdit }: InsumoFormProps) {
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="mb-1.5 block font-semibold text-zinc-300">
+            <label htmlFor="f-appinventorycomponentsInsumoForm-2" className="mb-1.5 block font-semibold text-zinc-300">
               Nome do Insumo
             </label>
-            <Input
+            <Input id="f-appinventorycomponentsInsumoForm-2"
               required
               placeholder="Ex: Queijo Mussarela Fatiado"
               value={nome}
@@ -93,10 +93,10 @@ export function InsumoForm({ onClose, insumoToEdit }: InsumoFormProps) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1.5 block font-semibold text-zinc-300">
+              <label htmlFor="f-appinventorycomponentsInsumoForm-1" className="mb-1.5 block font-semibold text-zinc-300">
                 Unidade de Medida
               </label>
-              <select
+              <select id="f-appinventorycomponentsInsumoForm-1"
                 className="flex h-10 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 shadow-sm focus-visible:outline-none focus-visible:border-yellow-400"
                 value={unidadeMedida}
                 onChange={(e) => setUnidadeMedida(e.target.value.toUpperCase())}
@@ -110,10 +110,10 @@ export function InsumoForm({ onClose, insumoToEdit }: InsumoFormProps) {
             </div>
 
             <div>
-              <label className="mb-1.5 block font-semibold text-zinc-300">
+              <label htmlFor="f-appinventorycomponentsInsumoForm-3" className="mb-1.5 block font-semibold text-zinc-300">
                 Estoque Mínimo Ideal
               </label>
-              <Input
+              <Input id="f-appinventorycomponentsInsumoForm-3"
                 required
                 type="number"
                 step="0.01"
@@ -125,10 +125,10 @@ export function InsumoForm({ onClose, insumoToEdit }: InsumoFormProps) {
           </div>
 
           <div>
-            <label className="mb-1.5 block font-semibold text-zinc-300">
+            <label htmlFor="f-appinventorycomponentsInsumoForm-4" className="mb-1.5 block font-semibold text-zinc-300">
               Quantidade Inicial em Estoque
             </label>
-            <Input
+            <Input id="f-appinventorycomponentsInsumoForm-4"
               required
               type="number"
               step="0.01"

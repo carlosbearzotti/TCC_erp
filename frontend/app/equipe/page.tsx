@@ -1,5 +1,6 @@
 "use client";
 
+import { notify, askConfirm } from "@/components/ui/feedback";
 import React, { useState } from "react";
 import useSWR, { mutate } from "swr";
 import { api, fetcher } from "@/services/api";
@@ -142,7 +143,7 @@ export default function EquipePage() {
       await mutateFuncionarios();
       setIsModalOpen(false);
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Erro ao salvar funcionário.");
+      notify(err.response?.data?.detail || "Erro ao salvar funcionário.");
     } finally {
       setSubmitting(false);
     }
@@ -155,17 +156,17 @@ export default function EquipePage() {
       });
       await mutateFuncionarios();
     } catch (err: any) {
-      alert("Erro ao alterar status do funcionário.");
+      notify("Erro ao alterar status do funcionário.");
     }
   };
 
   const handleConfirmarAcerto = async (turnoId: number) => {
-    if (!confirm("Confirmar o recebimento do dinheiro deste entregador?")) return;
+    if (!(await askConfirm("Confirmar o recebimento do dinheiro deste entregador?"))) return;
     try {
       await api.post(`/core/turnos/${turnoId}/confirmar-acerto/`);
       await mutateTurnos();
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Erro ao confirmar acerto.");
+      notify(err.response?.data?.detail || "Erro ao confirmar acerto.");
     }
   };
 
@@ -439,8 +440,8 @@ export default function EquipePage() {
 
             <form onSubmit={handleSaveFuncionario} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Username (Login)</label>
-                <input
+                <label htmlFor="f-appequipepage-1" className="block text-xs font-medium text-zinc-400 mb-1">Username (Login)</label>
+                <input id="f-appequipepage-1"
                   type="text"
                   required
                   disabled={!!editingFuncionario}
@@ -452,8 +453,8 @@ export default function EquipePage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-zinc-400 mb-1">Primeiro Nome</label>
-                  <input
+                  <label htmlFor="f-appequipepage-2" className="block text-xs font-medium text-zinc-400 mb-1">Primeiro Nome</label>
+                  <input id="f-appequipepage-2"
                     type="text"
                     value={formFirstName}
                     onChange={(e) => setFormFirstName(e.target.value)}
@@ -461,8 +462,8 @@ export default function EquipePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-zinc-400 mb-1">Sobrenome</label>
-                  <input
+                  <label htmlFor="f-appequipepage-3" className="block text-xs font-medium text-zinc-400 mb-1">Sobrenome</label>
+                  <input id="f-appequipepage-3"
                     type="text"
                     value={formLastName}
                     onChange={(e) => setFormLastName(e.target.value)}
@@ -472,8 +473,8 @@ export default function EquipePage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">E-mail</label>
-                <input
+                <label htmlFor="f-appequipepage-4" className="block text-xs font-medium text-zinc-400 mb-1">E-mail</label>
+                <input id="f-appequipepage-4"
                   type="email"
                   value={formEmail}
                   onChange={(e) => setFormEmail(e.target.value)}
@@ -482,8 +483,8 @@ export default function EquipePage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Cargo / Role</label>
-                <select
+                <label htmlFor="f-appequipepage-5" className="block text-xs font-medium text-zinc-400 mb-1">Cargo / Role</label>
+                <select id="f-appequipepage-5"
                   value={formRole}
                   onChange={(e) => setFormRole(e.target.value)}
                   className="w-full rounded-xl border border-zinc-700 bg-zinc-800/60 px-3.5 py-2 text-sm text-zinc-100 focus:border-yellow-400 focus:outline-none"
@@ -496,10 +497,10 @@ export default function EquipePage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">
+                <label htmlFor="f-appequipepage-6" className="block text-xs font-medium text-zinc-400 mb-1">
                   Senha {editingFuncionario && "(Deixe em branco para não alterar)"}
                 </label>
-                <input
+                <input id="f-appequipepage-6"
                   type="password"
                   required={!editingFuncionario}
                   value={formPassword}

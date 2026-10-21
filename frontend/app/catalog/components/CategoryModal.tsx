@@ -67,6 +67,7 @@ export function CategoryModal({ isOpen, onClose, onCreated }: CategoryModalProps
           <button
             type="button"
             onClick={onClose}
+            aria-label="Fechar"
             className="p-1 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
           >
             <X className="h-5 w-5" />
@@ -81,10 +82,10 @@ export function CategoryModal({ isOpen, onClose, onCreated }: CategoryModalProps
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="mb-1.5 block font-semibold text-zinc-300">
+            <label htmlFor="f-appcatalogcomponentsCategoryModal-1" className="mb-1.5 block font-semibold text-zinc-300">
               Nome do Tipo / Categoria <span className="text-red-400">*</span>
             </label>
-            <Input
+            <Input id="f-appcatalogcomponentsCategoryModal-1"
               required
               autoFocus
               placeholder="Ex: Pasteis, Lanches Especiais, Sucos..."
@@ -95,10 +96,10 @@ export function CategoryModal({ isOpen, onClose, onCreated }: CategoryModalProps
           </div>
 
           <div>
-            <label className="mb-1.5 block font-semibold text-zinc-300">
+            <label htmlFor="f-appcatalogcomponentsCategoryModal-2" className="mb-1.5 block font-semibold text-zinc-300">
               Descrição (Opcional)
             </label>
-            <Input
+            <Input id="f-appcatalogcomponentsCategoryModal-2"
               placeholder="Ex: Fritos na hora com massa crocante..."
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}

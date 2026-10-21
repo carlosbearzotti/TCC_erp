@@ -243,7 +243,7 @@ export default function OrdersPOS() {
             <AlertCircle className="h-5 w-5 flex-shrink-0" />
             <div>
               <p className="font-semibold text-xs">Falha na conexão com a API de Produtos.</p>
-              <p className="text-[11px] text-red-400/80">Verifique se o backend está rodando em http://localhost:8000</p>
+              <p className="text-xs text-red-400/80">Verifique se o backend está rodando em http://localhost:8000</p>
             </div>
           </div>
         )}
@@ -277,7 +277,7 @@ export default function OrdersPOS() {
                   )}
                   <div className="p-4 pb-0">
                     {product.categoria_nome && (
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 mb-1.5 inline-block">
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 mb-1.5 inline-block">
                         {product.categoria_nome}
                       </span>
                     )}
@@ -329,7 +329,7 @@ export default function OrdersPOS() {
               <div key={item.id} className="flex items-center justify-between border-b border-zinc-800/60 pb-3 last:border-0 last:pb-0">
                 <div className="flex-1 pr-2">
                   <div className="font-bold text-xs text-zinc-100 leading-tight">{item.name}</div>
-                  <div className="text-[11px] text-zinc-500 mt-0.5">
+                  <div className="text-xs text-zinc-500 mt-0.5">
                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.price)} un
                   </div>
                 </div>
@@ -374,7 +374,7 @@ export default function OrdersPOS() {
 
           {/* Atendimento: Mesa x Balcão */}
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+            <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
               Atendimento / Identificação
             </label>
             <div className="grid grid-cols-2 gap-1.5 mb-2">
@@ -441,7 +441,7 @@ export default function OrdersPOS() {
 
             {tipoAtendimento === "delivery" && (
               <div className="rounded-2xl bg-zinc-950/80 border border-zinc-800/80 p-3 space-y-2 animate-in fade-in duration-200">
-                <div className="flex items-center justify-between text-[11px] font-bold text-yellow-400">
+                <div className="flex items-center justify-between text-xs font-bold text-yellow-400">
                   <span>Endereço de Entrega</span>
                   {loadingCep && (
                     <span className="text-zinc-400 font-normal flex items-center gap-1">
@@ -513,7 +513,7 @@ export default function OrdersPOS() {
           </div>
 
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+            <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
               Forma de Pagamento
             </label>
             <div className="grid grid-cols-2 gap-1.5">
@@ -569,13 +569,13 @@ export default function OrdersPOS() {
             {paymentMethod === "dinheiro" && (
               <div className="rounded-2xl bg-zinc-950/80 border border-zinc-800/80 p-3 space-y-2 mt-2 animate-in fade-in duration-200">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">
                     Valor Recebido em Dinheiro (R$)
                   </label>
                   <button
                     type="button"
                     onClick={() => setValorRecebido(total.toFixed(2))}
-                    className="text-[10px] text-yellow-400 hover:underline font-semibold"
+                    className="text-xs text-yellow-400 hover:underline font-semibold"
                   >
                     Valor Exato
                   </button>
@@ -590,7 +590,7 @@ export default function OrdersPOS() {
                   className="h-8 text-xs bg-zinc-900 border-zinc-800 font-bold text-zinc-100 placeholder:text-zinc-600"
                 />
                 <div className="flex justify-between items-center text-xs pt-0.5">
-                  <span className="text-zinc-400 text-[11px]">Troco calculado:</span>
+                  <span className="text-zinc-400 text-xs">Troco calculado:</span>
                   <span
                     className={`font-black ${
                       numValorRecebido > 0 && numValorRecebido < total
@@ -642,14 +642,14 @@ export default function OrdersPOS() {
             {/* Destaque Comanda & Mesa */}
             <div className="my-3 py-2.5 px-3 rounded-2xl bg-yellow-400/10 border border-yellow-400/30 flex items-center justify-around">
               <div>
-                <span className="text-[10px] uppercase font-bold text-yellow-500/80 block">Comanda</span>
+                <span className="text-xs uppercase font-bold text-yellow-500/80 block">Comanda</span>
                 <span className="text-xl font-black text-yellow-400">
                   #{successOrder.numero_comanda || "0000"}
                 </span>
               </div>
               <div className="h-8 w-[1px] bg-zinc-800" />
               <div>
-                <span className="text-[10px] uppercase font-bold text-yellow-500/80 block">Atendimento</span>
+                <span className="text-xs uppercase font-bold text-yellow-500/80 block">Atendimento</span>
                 <span className="text-base font-black text-zinc-100">
                   {successOrder.numero_mesa || "Balcão"}
                 </span>
@@ -657,7 +657,7 @@ export default function OrdersPOS() {
             </div>
 
             {successOrder.endereco && (
-              <div className="mb-2 p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-left text-[11px] text-zinc-300">
+              <div className="mb-2 p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-left text-xs text-zinc-300">
                 <span className="font-bold text-yellow-400 block mb-0.5">Endereço de Entrega:</span>
                 <p>{successOrder.endereco.logradouro}, {successOrder.endereco.numero} {successOrder.endereco.complemento ? `- ${successOrder.endereco.complemento}` : ""}</p>
                 <p className="text-zinc-400">{successOrder.endereco.bairro} • {successOrder.endereco.cidade}/{successOrder.endereco.uf} (CEP: {successOrder.endereco.cep})</p>

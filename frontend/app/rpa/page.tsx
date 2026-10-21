@@ -132,12 +132,12 @@ export default function RpaPage() {
                     <Bot className="h-4 w-4" />
                   </span>
                   <h3 className="font-bold text-sm text-zinc-100">{task.name}</h3>
-                  <span className="rounded-full bg-green-500/10 border border-green-500/30 px-2 py-0.5 text-[10px] font-bold text-green-400">
+                  <span className="rounded-full bg-green-500/10 border border-green-500/30 px-2 py-0.5 text-xs font-bold text-green-400">
                     Ativo
                   </span>
                 </div>
                 <p className="text-xs text-zinc-400">{task.description}</p>
-                <div className="flex flex-wrap gap-4 pt-1 text-[11px] text-zinc-500">
+                <div className="flex flex-wrap gap-4 pt-1 text-xs text-zinc-500">
                   <span>Frequência recomendada: <strong className="text-zinc-300 font-medium">{task.frequency}</strong></span>
                   <span>Última execução: <strong className="text-zinc-300 font-medium">{formatRun(rpa.lastRunOf(task.id))}</strong></span>
                   <span>Execuções registradas: <strong className="text-zinc-300 font-medium">{rpa.countOf(task.id)}</strong></span>

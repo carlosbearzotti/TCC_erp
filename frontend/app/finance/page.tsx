@@ -1,5 +1,6 @@
 "use client";
 
+import { notify, askConfirm } from "@/components/ui/feedback";
 import React, { useState, useMemo } from "react";
 import useSWR, { mutate } from "swr";
 import { api, fetcher, fetcherResults } from "@/services/api";
@@ -317,14 +318,14 @@ export default function FinancePage() {
   };
 
   const handleDeleteLancamento = async (id: number) => {
-    if (!confirm("Tem certeza que deseja excluir este lançamento financeiro?")) return;
+    if (!(await askConfirm("Tem certeza que deseja excluir este lançamento financeiro?"))) return;
 
     try {
       await api.delete(`/finance/lancamentos/${id}/`);
       mutate(summaryUrl);
       mutate(lancamentosUrl);
     } catch (err: any) {
-      alert("Erro ao excluir lançamento: " + (err.response?.data?.detail || "Erro inesperado"));
+      notify("Erro ao excluir lançamento: " + (err.response?.data?.detail || "Erro inesperado"));
     }
   };
 
@@ -342,18 +343,18 @@ export default function FinancePage() {
       setNewCatDesc("");
       mutate("/finance/categories/");
     } catch (err: any) {
-      alert("Erro ao cadastrar categoria: " + (err.response?.data?.name || "Já existe ou inválida"));
+      notify("Erro ao cadastrar categoria: " + (err.response?.data?.name || "Já existe ou inválida"));
     }
   };
 
   const handleDeleteCategory = async (id: number) => {
-    if (!confirm("Excluir esta categoria financeira?")) return;
+    if (!(await askConfirm("Excluir esta categoria financeira?"))) return;
 
     try {
       await api.delete(`/finance/categories/${id}/`);
       mutate("/finance/categories/");
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Não é possível excluir uma categoria que possui lançamentos.");
+      notify(err.response?.data?.detail || "Não é possível excluir uma categoria que possui lançamentos.");
     }
   };
 
@@ -426,7 +427,7 @@ export default function FinancePage() {
               {loadingResumo ? "..." : formatCurrency(totalReceitas)}
             </span>
           </div>
-          <div className="mt-2 flex items-center text-[11px] text-zinc-500">
+          <div className="mt-2 flex items-center text-xs text-zinc-500">
             <span>Entradas de pedidos e vendas</span>
           </div>
         </div>
@@ -446,7 +447,7 @@ export default function FinancePage() {
               {loadingResumo ? "..." : formatCurrency(totalDespesas)}
             </span>
           </div>
-          <div className="mt-2 flex items-center text-[11px] text-zinc-500">
+          <div className="mt-2 flex items-center text-xs text-zinc-500">
             <span>Insumos, compras e custos operacionais</span>
           </div>
         </div>
@@ -474,7 +475,7 @@ export default function FinancePage() {
               {loadingResumo ? "..." : formatCurrency(saldoLiquido)}
             </span>
           </div>
-          <div className="mt-2 flex items-center text-[11px] text-zinc-500">
+          <div className="mt-2 flex items-center text-xs text-zinc-500">
             <span>{saldoLiquido >= 0 ? "Resultado positivo no período" : "Déficit no período selecionado"}</span>
           </div>
         </div>
@@ -638,7 +639,7 @@ export default function FinancePage() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="border-b border-zinc-800/60 bg-zinc-950/40 text-[11px] uppercase tracking-wider text-zinc-400">
+            <thead className="border-b border-zinc-800/60 bg-zinc-950/40 text-xs uppercase tracking-wider text-zinc-400">
               <tr>
                 <th className="py-3 px-4">Data</th>
                 <th className="py-3 px-4">Tipo</th>
@@ -669,11 +670,11 @@ export default function FinancePage() {
                     <td className="py-3 px-4 font-mono text-zinc-400">{formatDate(l.date)}</td>
                     <td className="py-3 px-4">
                       {l.type === "receita" ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-400 border border-emerald-500/20">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-400 border border-emerald-500/20">
                           <ArrowUpRight className="h-3 w-3" /> Receita
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-bold text-rose-400 border border-rose-500/20">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-xs font-bold text-rose-400 border border-rose-500/20">
                           <ArrowDownRight className="h-3 w-3" /> Despesa
                         </span>
                       )}
@@ -681,7 +682,7 @@ export default function FinancePage() {
                     <td className="py-3 px-4 font-medium text-zinc-100">
                       {l.description}
                       {l.pedido && (
-                        <span className="ml-2 rounded-md bg-yellow-400/10 px-1.5 py-0.5 text-[10px] font-bold text-yellow-400">
+                        <span className="ml-2 rounded-md bg-yellow-400/10 px-1.5 py-0.5 text-xs font-bold text-yellow-400">
                           Pedido #{l.pedido}
                         </span>
                       )}
@@ -779,8 +780,8 @@ export default function FinancePage() {
               {/* Valor e Data */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block font-semibold text-zinc-300">Valor (R$)*</label>
-                  <input
+                  <label htmlFor="f-appfinancepage-1" className="mb-1 block font-semibold text-zinc-300">Valor (R$)*</label>
+                  <input id="f-appfinancepage-1"
                     type="number"
                     step="0.01"
                     min="0.01"
@@ -792,8 +793,8 @@ export default function FinancePage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block font-semibold text-zinc-300">Data*</label>
-                  <input
+                  <label htmlFor="f-appfinancepage-2" className="mb-1 block font-semibold text-zinc-300">Data*</label>
+                  <input id="f-appfinancepage-2"
                     type="date"
                     required
                     value={formDate}
@@ -813,7 +814,7 @@ export default function FinancePage() {
                       setShowNewModal(false);
                       setShowCatModal(true);
                     }}
-                    className="text-[11px] text-yellow-400 hover:underline"
+                    className="text-xs text-yellow-400 hover:underline"
                   >
                     + Criar categoria
                   </button>
@@ -837,8 +838,8 @@ export default function FinancePage() {
 
               {/* Descrição */}
               <div>
-                <label className="mb-1 block font-semibold text-zinc-300">Descrição*</label>
-                <input
+                <label htmlFor="f-appfinancepage-3" className="mb-1 block font-semibold text-zinc-300">Descrição*</label>
+                <input id="f-appfinancepage-3"
                   type="text"
                   required
                   placeholder="Ex: Pagamento Fornecedor de Embalagens"
@@ -850,8 +851,8 @@ export default function FinancePage() {
 
               {/* Forma de Pagamento */}
               <div>
-                <label className="mb-1 block font-semibold text-zinc-300">Forma de Pagamento</label>
-                <select
+                <label htmlFor="f-appfinancepage-4" className="mb-1 block font-semibold text-zinc-300">Forma de Pagamento</label>
+                <select id="f-appfinancepage-4"
                   value={formPaymentMethod}
                   onChange={(e) => setFormPaymentMethod(e.target.value)}
                   className="h-10 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 text-xs text-zinc-100 focus:border-yellow-400 focus:outline-none"
@@ -957,7 +958,7 @@ export default function FinancePage() {
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-zinc-200">{c.name}</span>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                        className={`rounded-full px-2 py-0.5 text-xs font-bold uppercase ${
                           c.type === "receita"
                             ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                             : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
@@ -966,7 +967,7 @@ export default function FinancePage() {
                         {c.type}
                       </span>
                     </div>
-                    {c.description && <p className="text-[11px] text-zinc-500 mt-0.5">{c.description}</p>}
+                    {c.description && <p className="text-xs text-zinc-500 mt-0.5">{c.description}</p>}
                   </div>
                   <button
                     onClick={() => handleDeleteCategory(c.id)}

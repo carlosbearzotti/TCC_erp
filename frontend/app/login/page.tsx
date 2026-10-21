@@ -78,12 +78,12 @@ export default function LoginPage() {
           {/* Form */}
           <form onSubmit={handleLogin} className="mt-6 space-y-4">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-zinc-300">
+              <label htmlFor="f-apploginpage-1" className="mb-1.5 block text-xs font-semibold text-zinc-300">
                 Usuário ou E-mail
               </label>
               <div className="relative">
                 <User className="absolute left-3.5 top-3 h-4 w-4 text-zinc-500" />
-                <Input
+                <Input id="f-apploginpage-1"
                   required
                   autoFocus
                   placeholder="Ex: admin"
@@ -95,12 +95,12 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-zinc-300">
+              <label htmlFor="f-apploginpage-2" className="mb-1.5 block text-xs font-semibold text-zinc-300">
                 Senha
               </label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-3 h-4 w-4 text-zinc-500" />
-                <Input
+                <Input id="f-apploginpage-2"
                   required
                   type="password"
                   placeholder="••••••••"
@@ -144,7 +144,7 @@ export default function LoginPage() {
           {/* Credenciais de demonstração: só em builds de desenvolvimento (NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS=true) */}
           {process.env.NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS === "true" && (
           <div className="mt-6 border-t border-zinc-800/80 pt-4 text-center">
-            <p className="text-[11px] text-zinc-500 leading-relaxed">
+            <p className="text-xs text-zinc-500 leading-relaxed">
               <span className="text-zinc-400 font-semibold">DevMode:</span> <span className="font-mono text-zinc-300 font-bold">superadmin</span> / <span className="font-mono text-zinc-300 font-bold">superadmin</span>
               <br />
               <span className="text-zinc-400 font-semibold">Gerente:</span> <span className="font-mono text-zinc-300 font-bold">admin</span> / <span className="font-mono text-zinc-300 font-bold">admin</span>

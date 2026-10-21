@@ -110,6 +110,7 @@ export function PaymentModal({ order, onClose, onSuccess }: PaymentModalProps) {
           </div>
           <button
             onClick={onClose}
+            aria-label="Fechar"
             className="rounded-full p-2 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
           >
             <X className="h-5 w-5" />
@@ -209,7 +210,7 @@ export function PaymentModal({ order, onClose, onSuccess }: PaymentModalProps) {
 
             {/* Payment Method Selector */}
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2 block">
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2 block">
                 Método de Pagamento
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -288,7 +289,7 @@ export function PaymentModal({ order, onClose, onSuccess }: PaymentModalProps) {
                   <button
                     type="button"
                     onClick={() => handlePreset(orderTotal)}
-                    className="px-2.5 py-1 rounded-lg bg-zinc-800/80 text-[11px] font-semibold text-zinc-300 hover:bg-zinc-700 transition-colors"
+                    className="px-2.5 py-1 rounded-lg bg-zinc-800/80 text-xs font-semibold text-zinc-300 hover:bg-zinc-700 transition-colors"
                   >
                     Exato (R$ {orderTotal.toFixed(2)})
                   </button>
@@ -296,7 +297,7 @@ export function PaymentModal({ order, onClose, onSuccess }: PaymentModalProps) {
                     <button
                       type="button"
                       onClick={() => handlePreset(20)}
-                      className="px-2.5 py-1 rounded-lg bg-zinc-800/80 text-[11px] font-semibold text-zinc-300 hover:bg-zinc-700 transition-colors"
+                      className="px-2.5 py-1 rounded-lg bg-zinc-800/80 text-xs font-semibold text-zinc-300 hover:bg-zinc-700 transition-colors"
                     >
                       R$ 20,00
                     </button>
@@ -305,7 +306,7 @@ export function PaymentModal({ order, onClose, onSuccess }: PaymentModalProps) {
                     <button
                       type="button"
                       onClick={() => handlePreset(50)}
-                      className="px-2.5 py-1 rounded-lg bg-zinc-800/80 text-[11px] font-semibold text-zinc-300 hover:bg-zinc-700 transition-colors"
+                      className="px-2.5 py-1 rounded-lg bg-zinc-800/80 text-xs font-semibold text-zinc-300 hover:bg-zinc-700 transition-colors"
                     >
                       R$ 50,00
                     </button>
@@ -314,7 +315,7 @@ export function PaymentModal({ order, onClose, onSuccess }: PaymentModalProps) {
                     <button
                       type="button"
                       onClick={() => handlePreset(100)}
-                      className="px-2.5 py-1 rounded-lg bg-zinc-800/80 text-[11px] font-semibold text-zinc-300 hover:bg-zinc-700 transition-colors"
+                      className="px-2.5 py-1 rounded-lg bg-zinc-800/80 text-xs font-semibold text-zinc-300 hover:bg-zinc-700 transition-colors"
                     >
                       R$ 100,00
                     </button>

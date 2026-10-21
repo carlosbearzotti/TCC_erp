@@ -1,5 +1,6 @@
 "use client"
 
+import { notify, askConfirm } from "@/components/ui/feedback";
 import { useEffect, useRef, useState } from "react"
 import useSWR, { mutate } from "swr"
 import api, { fetcher } from "../../services/api"
@@ -139,7 +140,7 @@ export default function CozinhaKDS() {
       mutate("/preparation/")
     } catch (err: any) {
       console.error("Erro ao iniciar preparo:", err)
-      alert("Falha ao iniciar preparo do pedido.")
+      notify("Falha ao iniciar preparo do pedido.")
     } finally {
       setActionLoadingId(null)
     }
@@ -152,7 +153,7 @@ export default function CozinhaKDS() {
       mutate("/preparation/")
     } catch (err: any) {
       console.error("Erro ao concluir preparo:", err)
-      alert("Falha ao marcar pedido como pronto.")
+      notify("Falha ao marcar pedido como pronto.")
     } finally {
       setActionLoadingId(null)
     }
@@ -165,7 +166,7 @@ export default function CozinhaKDS() {
       mutate("/preparation/")
     } catch (err: any) {
       console.error("Erro ao entregar preparo:", err)
-      alert("Falha ao marcar pedido como entregue.")
+      notify("Falha ao marcar pedido como entregue.")
     } finally {
       setActionLoadingId(null)
     }
@@ -283,7 +284,7 @@ export default function CozinhaKDS() {
             }`}
           >
             <span>{tab.label}</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+            <span className={`px-1.5 py-0.2 rounded-full text-xs font-extrabold ${
               filterStatus === tab.id ? "bg-zinc-950 text-yellow-400" : "bg-zinc-800 text-zinc-400"
             }`}>
               {tab.count}
@@ -360,7 +361,7 @@ export default function CozinhaKDS() {
                       {/* Status & Arrival badge */}
                       <div className="flex flex-col items-end gap-1.5">
                         <span
-                          className={`px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider ${
+                          className={`px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
                             order.status === "em_preparo"
                               ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                               : order.status === "pronto"
@@ -375,7 +376,7 @@ export default function CozinhaKDS() {
                             : "Pendente"}
                         </span>
                         <div
-                          className={`flex items-center gap-1 text-[11px] font-semibold ${
+                          className={`flex items-center gap-1 text-xs font-semibold ${
                             isDelayed ? "text-red-400 font-bold animate-pulse" : "text-zinc-400"
                           }`}
                         >
@@ -388,12 +389,12 @@ export default function CozinhaKDS() {
 
                   {/* Delivery Address Block */}
                   {order.tipo_atendimento === "delivery" && order.endereco && (
-                    <div className="mx-4 mt-3 p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-200 flex items-start gap-2 animate-in fade-in duration-200">
+                    <div className="mx-4 mt-3 p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200 flex items-start gap-2 animate-in fade-in duration-200">
                       <MapPin className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
                       <div className="min-w-0">
                         <span className="font-bold text-amber-300 block">Endereço de Entrega:</span>
                         <p className="truncate font-medium">{order.endereco.logradouro}, {order.endereco.numero} {order.endereco.complemento ? `(${order.endereco.complemento})` : ""}</p>
-                        <p className="text-[10px] text-amber-300/80">{order.endereco.bairro} • {order.endereco.cidade}/{order.endereco.uf} (CEP: {order.endereco.cep})</p>
+                        <p className="text-xs text-amber-300/80">{order.endereco.bairro} • {order.endereco.cidade}/{order.endereco.uf} (CEP: {order.endereco.cep})</p>
                       </div>
                     </div>
                   )}

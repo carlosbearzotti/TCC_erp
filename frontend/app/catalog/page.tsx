@@ -1,5 +1,6 @@
 "use client"
 
+import { notify, askConfirm } from "@/components/ui/feedback";
 import { useState } from "react"
 import useSWR, { mutate } from "swr"
 import api, { fetcher, mediaUrl } from "../../services/api"
@@ -40,7 +41,7 @@ export default function Catalog() {
   )
 
   const handleDelete = async (id: number, nome: string) => {
-    if (!confirm(`Tem certeza que deseja remover o produto "${nome}"?`)) {
+    if (!(await askConfirm(`Tem certeza que deseja remover o produto "${nome}"?`))) {
       return
     }
 
@@ -48,7 +49,7 @@ export default function Catalog() {
       await api.delete(`/catalog/produtos/${id}/`)
       mutate("/catalog/produtos/")
     } catch (err: any) {
-      alert("Erro ao excluir produto. Ele pode estar vinculado a pedidos ou receitas.")
+      notify("Erro ao excluir produto. Ele pode estar vinculado a pedidos ou receitas.")
     }
   }
 
@@ -120,7 +121,7 @@ export default function Catalog() {
           <AlertCircle className="h-5 w-5 flex-shrink-0" />
           <div>
             <p className="font-semibold text-xs">Falha na conexão com a API do Django.</p>
-            <p className="text-[11px] text-red-400/80">Verifique se o backend está rodando em http://localhost:8000</p>
+            <p className="text-xs text-red-400/80">Verifique se o backend está rodando em http://localhost:8000</p>
           </div>
         </div>
       )}
@@ -171,7 +172,7 @@ export default function Catalog() {
                       <div>
                         <div>{product.nome}</div>
                         {product.descricao && (
-                          <div className="text-[11px] text-zinc-500 font-normal">{product.descricao}</div>
+                          <div className="text-xs text-zinc-500 font-normal">{product.descricao}</div>
                         )}
                       </div>
                     </div>

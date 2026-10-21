@@ -1,5 +1,6 @@
 "use client";
 
+import { notify, askConfirm } from "@/components/ui/feedback";
 import { useState, useEffect, useRef } from "react";
 import useSWR from "swr";
 import Link from "next/link";
@@ -73,21 +74,21 @@ export function Header() {
       await api.post("/core/turnos/checkin/");
       await mutateTurno();
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Erro ao iniciar turno.");
+      notify(err.response?.data?.detail || "Erro ao iniciar turno.");
     } finally {
       setLoadingTurno(false);
     }
   };
 
   const handleCheckout = async () => {
-    if (!confirm("Deseja realmente encerrar o seu turno agora?")) return;
+    if (!(await askConfirm("Deseja realmente encerrar o seu turno agora?"))) return;
     try {
       setLoadingTurno(true);
       const { api } = await import("@/services/api");
       await api.post("/core/turnos/checkout/");
       await mutateTurno();
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Erro ao encerrar turno.");
+      notify(err.response?.data?.detail || "Erro ao encerrar turno.");
     } finally {
       setLoadingTurno(false);
     }
@@ -116,7 +117,7 @@ export function Header() {
   }, []);
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-4 px-6 py-6 border-b border-zinc-800/40">
+    <header className="flex flex-wrap items-center justify-between gap-4 px-6 py-6 lg:px-8 border-b border-zinc-800/40">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-zinc-50">
           Olá, Administrador!{" "}
@@ -173,7 +174,7 @@ export function Header() {
           >
             <Bell className="h-[18px] w-[18px]" />
             {totalNotifications > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-yellow-400 px-1 text-[10px] font-bold text-zinc-950 shadow-lg shadow-yellow-400/30 animate-pulse">
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-yellow-400 px-1 text-xs font-bold text-zinc-950 shadow-lg shadow-yellow-400/30">
                 {totalNotifications}
               </span>
             )}
@@ -186,7 +187,7 @@ export function Header() {
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-bold text-zinc-100">Central de Notificações</h3>
                   {totalNotifications > 0 && (
-                    <span className="rounded-full bg-yellow-400/20 px-2 py-0.5 text-[10px] font-bold text-yellow-400">
+                    <span className="rounded-full bg-yellow-400/20 px-2 py-0.5 text-xs font-bold text-yellow-400">
                       {totalNotifications} pendente{totalNotifications > 1 ? "s" : ""}
                     </span>
                   )}
@@ -204,7 +205,7 @@ export function Header() {
                   <div className="flex flex-col items-center justify-center py-6 text-center text-zinc-500 text-xs">
                     <CheckCircle2 className="h-8 w-8 text-green-400 mb-2 opacity-80" />
                     <p className="font-semibold text-zinc-300">Tudo em ordem!</p>
-                    <p className="text-[11px] text-zinc-500 mt-0.5">Nenhum estoque crítico ou pedido pendente no momento.</p>
+                    <p className="text-xs text-zinc-500 mt-0.5">Nenhum estoque crítico ou pedido pendente no momento.</p>
                   </div>
                 ) : (
                   <>
@@ -219,7 +220,7 @@ export function Header() {
                         <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
                         <div>
                           <p className="font-bold text-zinc-100">Estoque Crítico: {item.nome}</p>
-                          <p className="text-[11px] text-zinc-400 mt-0.5">
+                          <p className="text-xs text-zinc-400 mt-0.5">
                             Restam apenas <span className="text-red-400 font-bold">{item.quantidade_atual} {item.unidade_medida}</span> (Mínimo: {item.estoque_minimo} {item.unidade_medida}).
                           </p>
                         </div>
@@ -237,7 +238,7 @@ export function Header() {
                         <Clock className="h-4 w-4 text-yellow-400 shrink-0 mt-0.5" />
                         <div>
                           <p className="font-bold text-zinc-100">Pedido #{order.id} em Preparo</p>
-                          <p className="text-[11px] text-zinc-400 mt-0.5">
+                          <p className="text-xs text-zinc-400 mt-0.5">
                             Total: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(order.total))} • Status: {order.status}
                           </p>
                         </div>

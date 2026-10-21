@@ -87,8 +87,8 @@ export default function DashboardPage() {
       icon: DollarSign,
       iconClassName: "text-yellow-400",
       footer: {
-        text: periodo === "hoje" ? "Vendas de hoje" : `Período: ${periodo}`,
-        className: "text-green-400 font-semibold",
+        text: periodo === "hoje" ? "Vendas de hoje" : `Período: ${({ "7dias": "últimos 7 dias", mes_atual: "este mês", mes_passado: "mês passado" } as Record<string, string>)[periodo] ?? periodo}`,
+        className: "text-emerald-400 font-medium",
       },
     },
     {

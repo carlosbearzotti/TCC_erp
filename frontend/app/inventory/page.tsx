@@ -1,5 +1,6 @@
 "use client"
 
+import { notify, askConfirm } from "@/components/ui/feedback";
 import { useState } from "react"
 import useSWR, { mutate } from "swr"
 import api, { fetcher } from "../../services/api"
@@ -40,7 +41,7 @@ export default function Inventory() {
   )
 
   const handleDelete = async (id: number, nome: string) => {
-    if (!confirm(`Deseja realmente remover o insumo "${nome}"?`)) {
+    if (!(await askConfirm(`Deseja realmente remover o insumo "${nome}"?`))) {
       return
     }
 
@@ -48,7 +49,7 @@ export default function Inventory() {
       await api.delete(`/inventory/insumos/${id}/`)
       mutate("/inventory/insumos/")
     } catch (err: any) {
-      alert("Erro ao excluir insumo. Verifique se ele está vinculado a receitas.")
+      notify("Erro ao excluir insumo. Verifique se ele está vinculado a receitas.")
     }
   }
 
@@ -149,7 +150,7 @@ export default function Inventory() {
           <AlertCircle className="h-5 w-5 flex-shrink-0" />
           <div>
             <p className="font-semibold text-xs">Falha na conexão com a API de Estoque.</p>
-            <p className="text-[11px] text-red-400/80">Verifique se o backend está rodando em http://localhost:8000</p>
+            <p className="text-xs text-red-400/80">Verifique se o backend está rodando em http://localhost:8000</p>
           </div>
         </div>
       )}

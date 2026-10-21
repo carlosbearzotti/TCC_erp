@@ -1,5 +1,6 @@
 "use client";
 
+import { notify, askConfirm } from "@/components/ui/feedback";
 import React, { useState, useRef } from "react";
 import useSWR, { mutate } from "swr";
 import { api, fetcher } from "@/services/api";
@@ -150,7 +151,7 @@ export default function EntregadorApp() {
       });
       await mutateDisp();
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Erro ao alterar disponibilidade.");
+      notify(err.response?.data?.detail || "Erro ao alterar disponibilidade.");
     }
   };
 
@@ -160,18 +161,18 @@ export default function EntregadorApp() {
       await mutateTurno();
       await mutateDisp();
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Erro ao iniciar turno.");
+      notify(err.response?.data?.detail || "Erro ao iniciar turno.");
     }
   };
 
   const handleCheckout = async () => {
-    if (!confirm("Deseja encerrar seu turno e fechar o caixa de hoje?")) return;
+    if (!(await askConfirm("Deseja encerrar seu turno e fechar o caixa de hoje?"))) return;
     try {
       await api.post("/core/turnos/checkout/");
       await mutateTurno();
       await mutateDisp();
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Erro ao encerrar turno.");
+      notify(err.response?.data?.detail || "Erro ao encerrar turno.");
     }
   };
 
@@ -201,7 +202,7 @@ export default function EntregadorApp() {
       let comprovanteUrl = "";
       if (validationMethod === "assinatura") {
         if (!hasSignature) {
-          alert("Por favor, peça ao cliente para assinar na tela.");
+          notify("Por favor, peça ao cliente para assinar na tela.");
           setActionLoading(false);
           return;
         }
@@ -221,9 +222,9 @@ export default function EntregadorApp() {
       setSelectedOrderForDelivery(null);
       setPinInput("");
       setHasSignature(false);
-      alert("Entrega confirmada com sucesso!");
+      notify("Entrega confirmada com sucesso!");
     } catch (err: any) {
-      alert(err.response?.data?.detail || err.response?.data?.pin || "Erro ao confirmar entrega.");
+      notify(err.response?.data?.detail || err.response?.data?.pin || "Erro ao confirmar entrega.");
     } finally {
       setActionLoading(false);
     }
@@ -244,9 +245,9 @@ export default function EntregadorApp() {
       await mutateEntregas();
       setSelectedOrderForFailure(null);
       setOtherReasonText("");
-      alert("Falha registrada. O pedido agora consta como 'Retornando à base'!");
+      notify("Falha registrada. O pedido agora consta como 'Retornando à base'!");
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Erro ao reportar falha.");
+      notify(err.response?.data?.detail || "Erro ao reportar falha.");
     } finally {
       setActionLoading(false);
     }
@@ -303,7 +304,7 @@ export default function EntregadorApp() {
       <div className="relative flex h-full max-h-230 w-full max-w-md flex-col overflow-hidden rounded-none sm:rounded-[40px] border-0 sm:border-8 sm:border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/80">
         
         {/* Top Notch Bar */}
-        <div className="flex items-center justify-between bg-zinc-950 px-6 pt-3 pb-2 text-[11px] font-semibold text-zinc-400">
+        <div className="flex items-center justify-between bg-zinc-950 px-6 pt-3 pb-2 text-xs font-semibold text-zinc-400">
           <span>09:41</span>
           <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-zinc-400" />
@@ -336,7 +337,7 @@ export default function EntregadorApp() {
                 {/* Botão de Disponibilidade (Pílula) */}
                 <button
                   onClick={handleToggleDisponibilidade}
-                  className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold transition-all ${
+                  className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${
                     dispData?.is_online
                       ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 shadow-sm"
                       : "border-zinc-800 bg-zinc-900 text-zinc-400"
@@ -358,7 +359,7 @@ export default function EntregadorApp() {
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-yellow-400/20 shrink-0">
                       <Clock className="h-5 w-5 text-yellow-400" />
                     </div>
-                    <span className="text-[11px] leading-snug text-zinc-300 max-w-35">
+                    <span className="text-xs leading-snug text-zinc-300 max-w-35">
                       Inicie seu turno para poder receber entregas e ficar online.
                     </span>
                   </div>
@@ -370,7 +371,7 @@ export default function EntregadorApp() {
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center justify-between rounded-2xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-[11px] mt-4">
+                <div className="flex items-center justify-between rounded-2xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-xs mt-4">
                   <span className="flex items-center gap-1.5 text-zinc-300">
                     <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
                     Turno em andamento: <strong>{turnoData.turno?.duracao_minutos || 0} min</strong>
@@ -448,7 +449,7 @@ export default function EntregadorApp() {
                   <h4 className="flex items-center text-xs font-black tracking-wide text-zinc-100 uppercase">
                     <Package className="mr-2 h-4 w-4 text-yellow-400" /> MINHAS ENTREGAS ATIVAS ({activeOrders.length})
                   </h4>
-                  <span className="text-[10px] font-medium text-zinc-500">
+                  <span className="text-xs font-medium text-zinc-500">
                     Máx: 4 simultâneas
                   </span>
                 </div>
@@ -480,7 +481,7 @@ export default function EntregadorApp() {
                                 <span className="text-sm font-extrabold text-zinc-100">
                                   Pedido #{pedido.id}
                                 </span>
-                                <span className="rounded-full bg-yellow-400/20 px-2 py-0.5 text-[10px] font-bold text-yellow-400">
+                                <span className="rounded-full bg-yellow-400/20 px-2 py-0.5 text-xs font-bold text-yellow-400">
                                   DELIVERY
                                 </span>
                               </div>
@@ -490,11 +491,11 @@ export default function EntregadorApp() {
                             </div>
 
                             {isRetornando ? (
-                              <span className="rounded-full bg-red-500/20 px-2.5 py-0.5 text-[10px] font-bold text-red-400 border border-red-500/30">
+                              <span className="rounded-full bg-red-500/20 px-2.5 py-0.5 text-xs font-bold text-red-400 border border-red-500/30">
                                 Retornando
                               </span>
                             ) : (
-                              <span className="rounded-full bg-zinc-800 px-2.5 py-0.5 text-[10px] font-semibold text-zinc-300">
+                              <span className="rounded-full bg-zinc-800 px-2.5 py-0.5 text-xs font-semibold text-zinc-300">
                                 {pedido.status.toUpperCase()}
                               </span>
                             )}
@@ -503,15 +504,15 @@ export default function EntregadorApp() {
                           {/* Alerta de Troco */}
                           {pedido.payment_method === "dinheiro" && (
                             <div className="mt-2.5 rounded-xl border border-amber-500/30 bg-amber-950/30 p-2 text-xs text-amber-200 flex items-center justify-between">
-                              <span className="font-semibold flex items-center gap-1 text-[11px]">
+                              <span className="font-semibold flex items-center gap-1 text-xs">
                                 <DollarSign className="h-3.5 w-3.5 text-amber-400" /> Cobrar Dinheiro
                               </span>
                               {Number(pedido.troco) > 0 ? (
-                                <span className="font-bold text-amber-300 text-[11px]">
+                                <span className="font-bold text-amber-300 text-xs">
                                   Troco: R$ {Number(pedido.troco).toFixed(2)}
                                 </span>
                               ) : (
-                                <span className="text-zinc-400 text-[11px]">Sem troco</span>
+                                <span className="text-zinc-400 text-xs">Sem troco</span>
                               )}
                             </div>
                           )}
@@ -523,11 +524,11 @@ export default function EntregadorApp() {
                               <p className="font-medium text-zinc-100">
                                 {pedido.endereco?.logradouro}, {pedido.endereco?.numero}
                               </p>
-                              <p className="text-zinc-400 text-[11px]">
+                              <p className="text-zinc-400 text-xs">
                                 {pedido.endereco?.bairro} - {pedido.endereco?.cidade}/{pedido.endereco?.uf}
                               </p>
                               {pedido.endereco?.complemento && (
-                                <p className="text-[10px] text-zinc-500">Compl: {pedido.endereco?.complemento}</p>
+                                <p className="text-xs text-zinc-500">Compl: {pedido.endereco?.complemento}</p>
                               )}
                             </div>
                           </div>
@@ -592,11 +593,11 @@ export default function EntregadorApp() {
                   <div key={ord.id} className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 space-y-2 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-yellow-400">Pedido #{ord.id}</span>
-                      <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[10px] font-bold text-emerald-400 capitalize">
+                      <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-xs font-bold text-emerald-400 capitalize">
                         • {ord.status}
                       </span>
                     </div>
-                    <p className="text-zinc-400 truncate text-[11px]">
+                    <p className="text-zinc-400 truncate text-xs">
                       {ord.endereco?.logradouro}, {ord.endereco?.numero} - {ord.endereco?.bairro}
                     </p>
                     <div className="flex justify-between text-zinc-400 pt-1 border-t border-zinc-800/60">
@@ -632,7 +633,7 @@ export default function EntregadorApp() {
                   <div className="text-3xl font-black font-mono text-yellow-400">
                     R$ {Number(turnoData?.turno?.saldo_dinheiro || totalEmDinheiro).toFixed(2)}
                   </div>
-                  <p className="text-[11px] text-zinc-500">
+                  <p className="text-xs text-zinc-500">
                     Calculado a partir de {pedidosDinheiro.length} pedido(s) pagos em espécie.
                   </p>
                 </div>
@@ -670,7 +671,7 @@ export default function EntregadorApp() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-zinc-100">Entregador Próprio</p>
-                  <p className="text-[11px] text-zinc-400">
+                  <p className="text-xs text-zinc-400">
                     {dispData?.is_online ? "Status: Online (Disponível)" : "Status: Pausa (Invisível)"}
                   </p>
                 </div>
@@ -730,9 +731,9 @@ export default function EntregadorApp() {
                 }`}
               >
                 <Icon className="h-6 w-6" />
-                <span className="text-[11px]">{tab.label}</span>
+                <span className="text-xs">{tab.label}</span>
                 {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className="absolute -top-1.5 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-yellow-400 text-[9px] font-bold text-zinc-950">
+                  <span className="absolute -top-1.5 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-yellow-400 text-xs font-bold text-zinc-950">
                     {tab.badge}
                   </span>
                 )}
@@ -792,10 +793,10 @@ export default function EntregadorApp() {
               <form onSubmit={handleConfirmarEntrega} className="mt-4 space-y-4">
                 {validationMethod === "pin" && (
                   <div className="space-y-2">
-                    <label className="block text-xs font-medium text-zinc-400">
+                    <label htmlFor="f-appentregadorpage-1" className="block text-xs font-medium text-zinc-400">
                       Digite o PIN de 4 dígitos informado pelo cliente:
                     </label>
-                    <input
+                    <input id="f-appentregadorpage-1"
                       type="text"
                       maxLength={4}
                       required
@@ -804,7 +805,7 @@ export default function EntregadorApp() {
                       onChange={(e) => setPinInput(e.target.value)}
                       className="w-full text-center text-2xl font-extrabold tracking-widest font-mono rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-yellow-400 focus:border-yellow-400 focus:outline-none"
                     />
-                    <p className="text-[11px] text-zinc-500 text-center">
+                    <p className="text-xs text-zinc-500 text-center">
                       Código exibido na tela do cliente para segurança.
                     </p>
                   </div>
@@ -819,7 +820,7 @@ export default function EntregadorApp() {
                       <button
                         type="button"
                         onClick={clearCanvas}
-                        className="text-[11px] font-semibold text-yellow-400 hover:underline"
+                        className="text-xs font-semibold text-yellow-400 hover:underline"
                       >
                         Limpar
                       </button>
@@ -851,7 +852,7 @@ export default function EntregadorApp() {
                     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-700 bg-zinc-950/60 p-6">
                       <Camera className="h-8 w-8 text-yellow-400 mb-2" />
                       <span className="text-xs text-zinc-400 font-semibold">Tirar Foto com a Câmera</span>
-                      <span className="text-[10px] text-zinc-500 mt-1">(Simulação ativa para o teste)</span>
+                      <span className="text-xs text-zinc-500 mt-1">(Simulação ativa para o teste)</span>
                     </div>
                   </div>
                 )}
@@ -887,10 +888,10 @@ export default function EntregadorApp() {
 
               <form onSubmit={handleReportarFalha} className="mt-4 space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+                  <label htmlFor="f-appentregadorpage-2" className="block text-xs font-medium text-zinc-400 mb-1.5">
                     Selecione o motivo:
                   </label>
-                  <select
+                  <select id="f-appentregadorpage-2"
                     value={failureReason}
                     onChange={(e) => setFailureReason(e.target.value)}
                     className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-3.5 py-2.5 text-xs text-zinc-100 focus:border-yellow-400 focus:outline-none"
@@ -905,10 +906,10 @@ export default function EntregadorApp() {
 
                 {failureReason === "Outro" && (
                   <div>
-                    <label className="block text-xs font-medium text-zinc-400 mb-1">
+                    <label htmlFor="f-appentregadorpage-3" className="block text-xs font-medium text-zinc-400 mb-1">
                       Descreva o ocorrido:
                     </label>
-                    <textarea
+                    <textarea id="f-appentregadorpage-3"
                       required
                       rows={3}
                       value={otherReasonText}
@@ -919,7 +920,7 @@ export default function EntregadorApp() {
                   </div>
                 )}
 
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-xs text-zinc-500">
                   O pedido entrará no status <strong>Retornando à base</strong> e alertará a loja.
                 </p>
 

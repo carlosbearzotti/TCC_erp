@@ -3,6 +3,7 @@ import "./globals.css";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { FeedbackHost } from "@/components/ui/feedback";
 import { BrandingTitle } from "@/hooks/useBranding";
 
 export const metadata: Metadata = {
@@ -20,6 +21,7 @@ export default function RootLayout({
     <html lang="pt-BR" className="h-full dark">
       <body className="flex h-screen overflow-hidden bg-zinc-950 text-zinc-100 antialiased font-sans">
         <AuthProvider>
+          <FeedbackHost />
           <BrandingTitle />
           <AuthGuard>
             <div className="flex h-full w-full overflow-hidden">

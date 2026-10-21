@@ -186,7 +186,7 @@ export default function PermissoesPage() {
                   <h1 className="text-xl font-bold tracking-tight text-zinc-50">
                     Matriz de Permissões (RBAC)
                   </h1>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-yellow-400/30 bg-yellow-400/10 px-2 py-0.5 text-[10px] font-bold text-yellow-400">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-yellow-400/30 bg-yellow-400/10 px-2 py-0.5 text-xs font-bold text-yellow-400">
                     <Sparkles className="h-3 w-3" /> Dinâmico
                   </span>
                 </div>
@@ -235,7 +235,7 @@ export default function PermissoesPage() {
               <p className="mt-2 text-2xl font-bold text-zinc-100">
                 {matrixData?.roles.length || 0} <span className="text-xs font-normal text-zinc-500">roles</span>
               </p>
-              <p className="mt-1 text-[11px] text-zinc-400">Admin, Atendente, Cozinheiro, Entregador e Cliente</p>
+              <p className="mt-1 text-xs text-zinc-400">Admin, Atendente, Cozinheiro, Entregador e Cliente</p>
             </div>
 
             <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/60 p-4">
@@ -246,7 +246,7 @@ export default function PermissoesPage() {
               <p className="mt-2 text-2xl font-bold text-zinc-100">
                 {totalPermissoes} <span className="text-xs font-normal text-zinc-500">permissões</span>
               </p>
-              <p className="mt-1 text-[11px] text-zinc-400">Distribuídas em módulos operacionais e administrativos</p>
+              <p className="mt-1 text-xs text-zinc-400">Distribuídas em módulos operacionais e administrativos</p>
             </div>
 
             <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/60 p-4">
@@ -258,7 +258,7 @@ export default function PermissoesPage() {
                 <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="text-sm font-bold text-emerald-400">Guards Ativos (403)</span>
               </div>
-              <p className="mt-1 text-[11px] text-zinc-400">Bloqueio tanto no Frontend quanto nas Views do Backend</p>
+              <p className="mt-1 text-xs text-zinc-400">Bloqueio tanto no Frontend quanto nas Views do Backend</p>
             </div>
           </div>
 
@@ -294,7 +294,7 @@ export default function PermissoesPage() {
                       {matrixData?.roles.map((r) => (
                         <th key={r.key} className="min-w-[120px] p-4 text-center font-semibold">
                           <span
-                            className={`inline-block rounded-lg border px-2.5 py-1 text-[11px] font-bold capitalize ${
+                            className={`inline-block rounded-lg border px-2.5 py-1 text-xs font-bold capitalize ${
                               roleColors[r.key] || "border-zinc-700 bg-zinc-800 text-zinc-300"
                             }`}
                           >
@@ -311,7 +311,7 @@ export default function PermissoesPage() {
                         <tr className="bg-zinc-900/90">
                           <td
                             colSpan={(matrixData?.roles.length || 0) + 1}
-                            className="p-3 text-[11px] font-black uppercase tracking-wider text-yellow-400"
+                            className="p-3 text-xs font-black uppercase tracking-wider text-yellow-400"
                           >
                             <div className="flex items-center gap-2">
                               <Sliders className="h-3.5 w-3.5" />
@@ -333,7 +333,7 @@ export default function PermissoesPage() {
                                     {perm.codigo}
                                   </span>
                                 </div>
-                                <span className="text-[11px] text-zinc-400">
+                                <span className="text-xs text-zinc-400">
                                   {perm.descricao}
                                 </span>
                               </div>

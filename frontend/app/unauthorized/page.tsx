@@ -18,7 +18,7 @@ export default function UnauthorizedPage() {
             <ShieldAlert className="h-8 w-8" />
           </div>
 
-          <span className="inline-block rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-red-400">
+          <span className="inline-block rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-red-400">
             Acesso Restrito (403)
           </span>
 
@@ -51,7 +51,7 @@ export default function UnauthorizedPage() {
           </div>
 
           <div className="mt-6 border-t border-zinc-800/60 pt-4">
-            <p className="text-[11px] text-zinc-500">
+            <p className="text-xs text-zinc-500">
               Caso acredite que isto seja um engano, solicite liberação ao administrador do sistema.
             </p>
           </div>

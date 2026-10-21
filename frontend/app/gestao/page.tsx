@@ -1,5 +1,6 @@
 "use client"
 
+import { notify, askConfirm } from "@/components/ui/feedback";
 import React, { useState } from "react"
 import useSWR, { mutate } from "swr"
 import { api, fetcher } from "@/services/api"
@@ -179,7 +180,7 @@ export default function GestaoBalcaoPage() {
       setReturnSupplies(false)
       showFeedback("Pedido cancelado com sucesso.")
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Erro ao cancelar pedido.")
+      notify(err.response?.data?.detail || "Erro ao cancelar pedido.")
     } finally {
       setLoadingAction(false)
     }
@@ -192,7 +193,7 @@ export default function GestaoBalcaoPage() {
       mutate("/orders/")
       showFeedback(`Pedido #${orderId} liberado: atribua um novo entregador.`)
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Erro ao reenviar pedido para entrega.")
+      notify(err.response?.data?.detail || "Erro ao reenviar pedido para entrega.")
     } finally {
       setLoadingAction(false)
     }
@@ -210,7 +211,7 @@ export default function GestaoBalcaoPage() {
       mutate("/orders/")
       showFeedback("Item adicionado ao pedido!")
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Erro ao adicionar item.")
+      notify(err.response?.data?.detail || "Erro ao adicionar item.")
     } finally {
       setLoadingAction(false)
     }
@@ -227,7 +228,7 @@ export default function GestaoBalcaoPage() {
       mutate("/orders/")
       showFeedback("Item removido do pedido.")
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Erro ao remover item.")
+      notify(err.response?.data?.detail || "Erro ao remover item.")
     } finally {
       setLoadingAction(false)
     }
@@ -241,7 +242,7 @@ export default function GestaoBalcaoPage() {
       setIsCloseShiftOpen(false)
       showFeedback(res.data.message || "Expediente encerrado e pedidos arquivados.")
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Erro ao encerrar expediente.")
+      notify(err.response?.data?.detail || "Erro ao encerrar expediente.")
     } finally {
       setLoadingAction(false)
     }
@@ -343,12 +344,12 @@ export default function GestaoBalcaoPage() {
                       <strong>Pedido #{ped.id}</strong> ({ped.endereco?.logradouro}, {ped.endereco?.numero}) — Motivo: <span className="font-semibold text-white">{ped.motivo_falha_entrega || "Não informado"}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-red-400">Entregador: {ped.entregador_nome || `#${ped.entregador}`}</span>
+                      <span className="text-xs text-red-400">Entregador: {ped.entregador_nome || `#${ped.entregador}`}</span>
                       <button
                         type="button"
                         onClick={() => handleResendDelivery(ped.id)}
                         disabled={loadingAction}
-                        className="rounded-lg border border-yellow-400/60 bg-yellow-400/10 px-2 py-1 text-[11px] font-bold text-yellow-300 hover:bg-yellow-400 hover:text-zinc-950 disabled:opacity-50"
+                        className="rounded-lg border border-yellow-400/60 bg-yellow-400/10 px-2 py-1 text-xs font-bold text-yellow-300 hover:bg-yellow-400 hover:text-zinc-950 disabled:opacity-50"
                       >
                         Reenviar entrega
                       </button>
@@ -399,7 +400,7 @@ export default function GestaoBalcaoPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="rounded-3xl bg-zinc-900 border border-zinc-800 p-5 shadow-lg relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
               Pedidos Ativos
             </span>
             <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-yellow-400/10 text-yellow-400">
@@ -407,12 +408,12 @@ export default function GestaoBalcaoPage() {
             </div>
           </div>
           <p className="text-3xl font-black text-zinc-50 mt-2">{activeOrdersCount}</p>
-          <span className="text-[11px] text-zinc-400">Mesas e balcões abertos</span>
+          <span className="text-xs text-zinc-400">Mesas e balcões abertos</span>
         </div>
 
         <div className="rounded-3xl bg-zinc-900 border border-zinc-800 p-5 shadow-lg relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
               Na Cozinha
             </span>
             <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-400">
@@ -420,12 +421,12 @@ export default function GestaoBalcaoPage() {
             </div>
           </div>
           <p className="text-3xl font-black text-amber-400 mt-2">{inPrepCount}</p>
-          <span className="text-[11px] text-zinc-400">Em preparação agora</span>
+          <span className="text-xs text-zinc-400">Em preparação agora</span>
         </div>
 
         <div className="rounded-3xl bg-zinc-900 border border-zinc-800 p-5 shadow-lg relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
               Prontos
             </span>
             <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-400">
@@ -433,12 +434,12 @@ export default function GestaoBalcaoPage() {
             </div>
           </div>
           <p className="text-3xl font-black text-emerald-400 mt-2">{readyCount}</p>
-          <span className="text-[11px] text-zinc-400">Aguardando entrega</span>
+          <span className="text-xs text-zinc-400">Aguardando entrega</span>
         </div>
 
         <div className="rounded-3xl bg-zinc-900 border border-zinc-800 p-5 shadow-lg relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
               Faturamento do Turno
             </span>
             <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-purple-400/10 text-purple-400">
@@ -451,7 +452,7 @@ export default function GestaoBalcaoPage() {
               currency: "BRL",
             }).format(todayRevenue)}
           </p>
-          <span className="text-[11px] text-zinc-400">Receita de pedidos finalizados</span>
+          <span className="text-xs text-zinc-400">Receita de pedidos finalizados</span>
         </div>
       </div>
 
@@ -542,7 +543,7 @@ export default function GestaoBalcaoPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-zinc-950/70 border-b border-zinc-800 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+              <thead className="bg-zinc-950/70 border-b border-zinc-800 text-xs font-bold uppercase tracking-wider text-zinc-400">
                 <tr>
                   <th className="py-4 px-5">Comanda / Mesa</th>
                   <th className="py-4 px-4">Tipo</th>
@@ -574,7 +575,7 @@ export default function GestaoBalcaoPage() {
                             <span className="font-bold text-zinc-100 text-sm block">
                               {order.numero_mesa || "Balcão"}
                             </span>
-                            <span className="text-[10px] text-zinc-500 font-mono">
+                            <span className="text-xs text-zinc-500 font-mono">
                               ID #{order.id}
                             </span>
                           </div>
@@ -588,16 +589,16 @@ export default function GestaoBalcaoPage() {
                         </span>
                         {order.tipo_atendimento === "delivery" && order.endereco && (
                           <div className="flex flex-col gap-0.5 mt-1">
-                            <div className="flex items-center gap-1 text-[10px] text-amber-400" title={`${order.endereco.logradouro}, ${order.endereco.numero}`}>
+                            <div className="flex items-center gap-1 text-xs text-amber-400" title={`${order.endereco.logradouro}, ${order.endereco.numero}`}>
                               <MapPin className="h-3 w-3 shrink-0" />
                               <span className="truncate max-w-[120px]">{order.endereco.bairro}</span>
                             </div>
                             {order.entregador_nome ? (
-                              <span className="text-[10px] text-emerald-400 font-semibold">Moto: {order.entregador_nome}</span>
+                              <span className="text-xs text-emerald-400 font-semibold">Moto: {order.entregador_nome}</span>
                             ) : ["confirmado", "em_preparo", "pronto", "retornando_base"].includes(order.status) ? (
                               <button
                                 onClick={() => setSelectedOrderForAssign(order)}
-                                className="text-[10px] font-bold text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 rounded px-1.5 py-0.5 hover:bg-yellow-400 hover:text-zinc-950 w-fit transition-colors"
+                                className="text-xs font-bold text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 rounded px-1.5 py-0.5 hover:bg-yellow-400 hover:text-zinc-950 w-fit transition-colors"
                               >
                                 + Atribuir Moto
                               </button>
@@ -614,7 +615,7 @@ export default function GestaoBalcaoPage() {
                         <span className="font-bold text-zinc-200">
                           {order.itens?.length || 0} item(ns)
                         </span>
-                        <p className="text-[10px] text-zinc-500 truncate max-w-[180px]">
+                        <p className="text-xs text-zinc-500 truncate max-w-[180px]">
                           {order.itens?.map((i) => `${i.quantidade}x ${i.produto_nome || i.produto}`).join(", ")}
                         </p>
                       </td>
@@ -633,7 +634,7 @@ export default function GestaoBalcaoPage() {
                           {order.payment_method?.replace("_", " ")}
                         </span>
                         {order.status === "finalizado" && order.troco && Number(order.troco) > 0 && (
-                          <span className="text-[10px] text-emerald-400 font-bold">
+                          <span className="text-xs text-emerald-400 font-bold">
                             Troco: R$ {Number(order.troco).toFixed(2)}
                           </span>
                         )}
@@ -839,7 +840,7 @@ export default function GestaoBalcaoPage() {
 
             {/* Current Items */}
             <div className="flex-1 overflow-y-auto space-y-2 mb-4">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 block mb-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 block mb-1">
                 Itens Atuais no Pedido:
               </span>
               {selectedOrderForEdit.itens?.map((item) => (
@@ -851,7 +852,7 @@ export default function GestaoBalcaoPage() {
                     <span className="text-xs font-bold text-zinc-200 block">
                       {item.quantidade}x {item.produto_nome || `Produto #${item.produto}`}
                     </span>
-                    <span className="text-[10px] text-zinc-400">
+                    <span className="text-xs text-zinc-400">
                       R$ {Number(item.preco_unitario).toFixed(2)} un. • Subtotal: R$ {Number(item.subtotal).toFixed(2)}
                     </span>
                   </div>
@@ -869,7 +870,7 @@ export default function GestaoBalcaoPage() {
 
             {/* Add Products Quick List */}
             <div className="border-t border-zinc-800 pt-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-yellow-400 block mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-yellow-400 block mb-2">
                 + Adicionar Produto ao Pedido:
               </span>
               <div className="grid grid-cols-2 gap-2 max-h-44 overflow-y-auto p-1">
@@ -882,7 +883,7 @@ export default function GestaoBalcaoPage() {
                   >
                     <div className="min-w-0 pr-1">
                       <p className="text-xs font-bold text-zinc-200 truncate">{prod.nome}</p>
-                      <p className="text-[10px] text-yellow-400 font-bold">R$ {Number(prod.preco).toFixed(2)}</p>
+                      <p className="text-xs text-yellow-400 font-bold">R$ {Number(prod.preco).toFixed(2)}</p>
                     </div>
                     <Plus className="h-4 w-4 text-yellow-400 shrink-0" />
                   </button>
@@ -915,10 +916,10 @@ export default function GestaoBalcaoPage() {
             </p>
 
             <div className="mt-4 text-left">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1 block">
+              <label htmlFor="f-appgestaopage-1" className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1 block">
                 Motivo do cancelamento:
               </label>
-              <input
+              <input id="f-appgestaopage-1"
                 type="text"
                 placeholder="Ex: Cliente desistiu, erro na digitação..."
                 value={cancelReason}
@@ -928,7 +929,7 @@ export default function GestaoBalcaoPage() {
             </div>
 
             {["em_preparo", "pronto", "entregue", "retornando_base"].includes(selectedOrderForCancel.status) && (
-              <label className="mt-3 flex items-start gap-2 text-left text-[11px] text-zinc-300 cursor-pointer">
+              <label className="mt-3 flex items-start gap-2 text-left text-xs text-zinc-300 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={returnSupplies}
@@ -1055,7 +1056,7 @@ export default function GestaoBalcaoPage() {
                           }`}
                         />
                       </div>
-                      <p className="text-[11px] text-zinc-400">
+                      <p className="text-xs text-zinc-400">
                         {ent.is_online ? "Online" : "Offline / Em Pausa"} • {ent.entregas_ativas}/{ent.limite_maximo} ativas
                       </p>
                     </div>
@@ -1073,7 +1074,7 @@ export default function GestaoBalcaoPage() {
                           setSelectedOrderForAssign(null);
                           showFeedback(`Pedido atribuído ao entregador ${ent.nome} com sucesso!`);
                         } catch (err: any) {
-                          alert(err.response?.data?.entregador_id || err.response?.data?.detail || "Erro ao atribuir entregador.");
+                          notify(err.response?.data?.entregador_id || err.response?.data?.detail || "Erro ao atribuir entregador.");
                         } finally {
                           setLoadingAction(false);
                         }

@@ -44,7 +44,7 @@ export function CriticalStock() {
           <div className="flex h-full flex-col items-center justify-center py-8 text-center text-zinc-500 text-xs">
             <Package className="h-8 w-8 text-zinc-700 mb-2 opacity-50" />
             <p className="font-semibold text-zinc-400">Nenhum item em nível crítico</p>
-            <p className="text-[11px] text-zinc-600 mt-0.5">O estoque de insumos está operando normalmente.</p>
+            <p className="text-xs text-zinc-600 mt-0.5">O estoque de insumos está operando normalmente.</p>
           </div>
         ) : (
           <ul className="space-y-2">

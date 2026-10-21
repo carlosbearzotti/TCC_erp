@@ -72,10 +72,10 @@ export function MovimentacaoForm({ onClose, insumos }: MovimentacaoFormProps) {
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="mb-1.5 block font-semibold text-zinc-300">
+            <label htmlFor="f-appinventorycomponentsMovimentacaoForm-1" className="mb-1.5 block font-semibold text-zinc-300">
               Insumo
             </label>
-            <select
+            <select id="f-appinventorycomponentsMovimentacaoForm-1"
               className="flex h-10 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 shadow-sm focus-visible:outline-none focus-visible:border-yellow-400"
               value={insumoId}
               onChange={(e) => setInsumoId(e.target.value)}
@@ -126,10 +126,10 @@ export function MovimentacaoForm({ onClose, insumos }: MovimentacaoFormProps) {
           </div>
 
           <div>
-            <label className="mb-1.5 block font-semibold text-zinc-300">
+            <label htmlFor="f-appinventorycomponentsMovimentacaoForm-2" className="mb-1.5 block font-semibold text-zinc-300">
               Motivo da Movimentação
             </label>
-            <select
+            <select id="f-appinventorycomponentsMovimentacaoForm-2"
               className="flex h-10 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 shadow-sm focus-visible:outline-none focus-visible:border-yellow-400"
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
@@ -152,10 +152,10 @@ export function MovimentacaoForm({ onClose, insumos }: MovimentacaoFormProps) {
           </div>
 
           <div>
-            <label className="mb-1.5 block font-semibold text-zinc-300">
+            <label htmlFor="f-appinventorycomponentsMovimentacaoForm-3" className="mb-1.5 block font-semibold text-zinc-300">
               Quantidade ({selectedInsumo?.unidade_medida || "UN"})
             </label>
-            <Input
+            <Input id="f-appinventorycomponentsMovimentacaoForm-3"
               required
               type="number"
               step="0.001"

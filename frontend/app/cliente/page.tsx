@@ -1,5 +1,6 @@
 "use client"
 
+import { notify, askConfirm } from "@/components/ui/feedback";
 import { useState } from "react"
 import useSWR, { mutate } from "swr"
 import api, { fetcher, mediaUrl } from "../../services/api"
@@ -219,14 +220,14 @@ export default function ConsumerApp() {
 
     if (deliveryType === "entrega") {
       if (!cep || !logradouro || !numero || !bairro || !cidade) {
-        alert("Preencha todos os campos obrigatórios do endereço.")
+        notify("Preencha todos os campos obrigatórios do endereço.")
         return
       }
     }
 
     if (paymentMethod === "cartao_credito" || paymentMethod === "cartao_debito") {
       if (cardNumber.length < 16 || cardName.length < 3 || cardCvv.length < 3) {
-        alert("Preencha os dados do cartão corretamente (apenas simulação).")
+        notify("Preencha os dados do cartão corretamente (apenas simulação).")
         return
       }
     }
@@ -257,7 +258,7 @@ export default function ConsumerApp() {
       setCheckoutStep("success")
       setCartItems([])
     } catch (err: any) {
-      alert("Erro ao enviar pedido. Verifique os dados.")
+      notify("Erro ao enviar pedido. Verifique os dados.")
     } finally {
       setLoadingCheckout(false)
     }
@@ -270,7 +271,7 @@ export default function ConsumerApp() {
         <h4 className="text-sm font-bold text-zinc-100">
           {authMode === "login" ? title : "Crie sua Conta"}
         </h4>
-        <p className="text-[11px] text-zinc-400 mt-1">
+        <p className="text-xs text-zinc-400 mt-1">
           {authMode === "login"
             ? subtitle
             : "Rápido e fácil. Seus dados ficam salvos para seus próximos pedidos."}
@@ -313,7 +314,7 @@ export default function ConsumerApp() {
       {authMode === "login" ? (
         <div className="space-y-3">
           {loginError && (
-            <div className="rounded-xl bg-red-500/10 p-2.5 text-[11px] text-red-400 text-center border border-red-500/20">
+            <div className="rounded-xl bg-red-500/10 p-2.5 text-xs text-red-400 text-center border border-red-500/20">
               {loginError}
             </div>
           )}
@@ -341,7 +342,7 @@ export default function ConsumerApp() {
       ) : (
         <div className="space-y-3">
           {regError && (
-            <div className="rounded-xl bg-red-500/10 p-2.5 text-[11px] text-red-400 text-center border border-red-500/20">
+            <div className="rounded-xl bg-red-500/10 p-2.5 text-xs text-red-400 text-center border border-red-500/20">
               {regError}
             </div>
           )}
@@ -412,7 +413,7 @@ export default function ConsumerApp() {
                 >
                   <ShoppingBag className="h-5 w-5 text-yellow-400" />
                   {cartItems.length > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-yellow-400 text-[10px] font-bold text-zinc-950">
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-yellow-400 text-xs font-bold text-zinc-950">
                       {cartItems.length}
                     </span>
                   )}
@@ -468,7 +469,7 @@ export default function ConsumerApp() {
                   <h4 className="flex items-center text-sm font-bold text-zinc-100">
                     <Flame className="mr-1.5 h-4 w-4 text-amber-400" /> Cardápio
                   </h4>
-                  <span className="text-[11px] font-medium text-zinc-500">
+                  <span className="text-xs font-medium text-zinc-500">
                     {filteredProducts.length} itens disponíveis
                   </span>
                 </div>
@@ -482,7 +483,7 @@ export default function ConsumerApp() {
                   <div className="flex h-48 flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-800 p-6 text-center text-zinc-500">
                     <Utensils className="h-8 w-8 text-zinc-700 mb-2 opacity-50" />
                     <p className="font-semibold text-xs text-zinc-400">Nenhum produto no cardápio</p>
-                    <p className="text-[10px] text-zinc-600 mt-0.5">Cadastre produtos pelo painel "Cardápio" para exibi-los aqui.</p>
+                    <p className="text-xs text-zinc-600 mt-0.5">Cadastre produtos pelo painel "Cardápio" para exibi-los aqui.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -502,7 +503,7 @@ export default function ConsumerApp() {
                         )}
                         <div className="p-4 pb-0">
                           {product.categoria_nome && (
-                            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400 mb-1.5 inline-block">
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400 mb-1.5 inline-block">
                               {product.categoria_nome}
                             </span>
                           )}
@@ -510,7 +511,7 @@ export default function ConsumerApp() {
                             {product.nome}
                           </p>
                           {product.descricao && (
-                            <p className="mt-1 line-clamp-2 text-[10px] text-zinc-400">
+                            <p className="mt-1 line-clamp-2 text-xs text-zinc-400">
                               {product.descricao}
                             </p>
                           )}
@@ -521,6 +522,7 @@ export default function ConsumerApp() {
                           </span>
                           <button
                             type="button"
+                            aria-label="Adicionar ao pedido"
                             className="flex h-7 w-7 items-center justify-center rounded-lg bg-yellow-400 text-zinc-950 shadow-sm transition-transform active:scale-90 font-bold"
                           >
                             <Plus className="h-4 w-4" />
@@ -583,7 +585,7 @@ export default function ConsumerApp() {
                             <div className="flex-1 pr-3">
                               <p className="text-xs font-bold text-zinc-100">{item.product.nome}</p>
                               {item.observacao && (
-                                <p className="text-[10px] text-zinc-400 mt-0.5">Obs: {item.observacao}</p>
+                                <p className="text-xs text-zinc-400 mt-0.5">Obs: {item.observacao}</p>
                               )}
                               <p className="text-xs font-semibold text-yellow-400 mt-1">
                                 {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(item.total)}
@@ -650,7 +652,7 @@ export default function ConsumerApp() {
                     >
                       <MapPin className="mb-1.5 h-6 w-6" />
                       <span className="text-xs">Entrega Delivery</span>
-                      <span className="text-[10px] text-zinc-500 mt-0.5">R$ 5,00 • 35-45 min</span>
+                      <span className="text-xs text-zinc-500 mt-0.5">R$ 5,00 • 35-45 min</span>
                     </button>
 
                     <button
@@ -664,7 +666,7 @@ export default function ConsumerApp() {
                     >
                       <Home className="mb-1.5 h-6 w-6" />
                       <span className="text-xs">Retirar no Balcão</span>
-                      <span className="text-[10px] text-zinc-500 mt-0.5">Grátis • 15-25 min</span>
+                      <span className="text-xs text-zinc-500 mt-0.5">Grátis • 15-25 min</span>
                     </button>
                   </div>
 
@@ -755,7 +757,7 @@ export default function ConsumerApp() {
                           <span className="text-lg">{method.icon}</span>
                           <div>
                             <p className="text-xs font-bold text-zinc-100">{method.label}</p>
-                            <p className="text-[10px] text-zinc-400">{method.desc}</p>
+                            <p className="text-xs text-zinc-400">{method.desc}</p>
                           </div>
                         </div>
 
@@ -839,9 +841,9 @@ export default function ConsumerApp() {
 
                   {confirmedOrder?.codigo_pin_entrega && (
                     <div className="mt-4 rounded-2xl border-2 border-yellow-400 bg-yellow-400/10 p-4 w-full">
-                      <p className="text-[10px] font-bold uppercase text-yellow-500">Seu Código de Entrega (PIN)</p>
+                      <p className="text-xs font-bold uppercase text-yellow-500">Seu Código de Entrega (PIN)</p>
                       <p className="text-3xl font-black text-yellow-400 mt-1 tracking-widest">{confirmedOrder.codigo_pin_entrega}</p>
-                      <p className="text-[10px] text-zinc-400 mt-2">Informe este código ao entregador para receber seu pedido.</p>
+                      <p className="text-xs text-zinc-400 mt-2">Informe este código ao entregador para receber seu pedido.</p>
                     </div>
                   )}
 
@@ -890,7 +892,7 @@ export default function ConsumerApp() {
                   <div key={ord.id} className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 space-y-2 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-yellow-400">Pedido #{ord.id}</span>
-                      <span className="rounded-full bg-yellow-400/20 px-2.5 py-0.5 text-[10px] font-bold text-yellow-400 capitalize">
+                      <span className="rounded-full bg-yellow-400/20 px-2.5 py-0.5 text-xs font-bold text-yellow-400 capitalize">
                         • {ord.status}
                       </span>
                     </div>
@@ -917,7 +919,7 @@ export default function ConsumerApp() {
                   <p className="text-sm font-bold text-zinc-100">
                     {isAuthenticated ? (user?.first_name ? `${user.first_name} ${user.last_name}` : user?.username) : "Visitante"}
                   </p>
-                  <p className="text-[11px] text-zinc-400">
+                  <p className="text-xs text-zinc-400">
                     {isAuthenticated ? "Cliente Cadastrado" : "Faça login para gerenciar sua conta"}
                   </p>
                 </div>
@@ -984,9 +986,9 @@ export default function ConsumerApp() {
                   }`}
                 >
                   <Icon className="h-5 w-5" />
-                  <span className="text-[10px]">{tab.label}</span>
+                  <span className="text-xs">{tab.label}</span>
                   {tab.badge !== undefined && tab.badge > 0 && (
-                    <span className="absolute -top-1 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-yellow-400 text-[9px] font-bold text-zinc-950">
+                    <span className="absolute -top-1 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-yellow-400 text-xs font-bold text-zinc-950">
                       {tab.badge}
                     </span>
                   )}
@@ -1012,7 +1014,7 @@ export default function ConsumerApp() {
                   <div>
                     <h3 className="text-base font-bold text-zinc-100">{selectedProduct.nome}</h3>
                     {selectedProduct.categoria_nome && (
-                      <span className="text-[10px] font-medium text-yellow-400">{selectedProduct.categoria_nome}</span>
+                      <span className="text-xs font-medium text-yellow-400">{selectedProduct.categoria_nome}</span>
                     )}
                   </div>
                   <span className="text-base font-black text-yellow-400">
@@ -1024,10 +1026,10 @@ export default function ConsumerApp() {
                 )}
 
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-zinc-300">
+                  <label htmlFor="f-appclientepage-1" className="mb-1 block text-xs font-semibold text-zinc-300">
                     Observações do Pedido (Opcional)
                   </label>
-                  <textarea
+                  <textarea id="f-appclientepage-1"
                     rows={2}
                     placeholder="Ex: Sem cebola, caprichar no queijo..."
                     value={observacao}

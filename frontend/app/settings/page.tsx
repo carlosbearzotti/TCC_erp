@@ -139,10 +139,10 @@ export default function SettingsPage() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium text-zinc-300">
-                    Nome Fantasia <span className="text-[10px] text-emerald-400">(salvo no banco — aparece em todo o sistema e nos cupons)</span>
+                  <label htmlFor="f-appsettingspage-1" className="mb-1.5 block text-xs font-medium text-zinc-300">
+                    Nome Fantasia <span className="text-xs text-emerald-400">(salvo no banco — aparece em todo o sistema e nos cupons)</span>
                   </label>
-                  <input
+                  <input id="f-appsettingspage-1"
                     type="text"
                     value={storeName}
                     onChange={(e) => setStoreName(e.target.value)}
@@ -151,10 +151,10 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium text-zinc-300">
+                  <label htmlFor="f-appsettingspage-2" className="mb-1.5 block text-xs font-medium text-zinc-300">
                     Telefone / WhatsApp de Atendimento
                   </label>
-                  <input
+                  <input id="f-appsettingspage-2"
                     type="text"
                     value={storePhone}
                     onChange={(e) => setStorePhone(e.target.value)}
@@ -163,10 +163,10 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="mb-1.5 block text-xs font-medium text-zinc-300">
+                  <label htmlFor="f-appsettingspage-3" className="mb-1.5 block text-xs font-medium text-zinc-300">
                     Endereço Completo
                   </label>
-                  <input
+                  <input id="f-appsettingspage-3"
                     type="text"
                     value={storeAddress}
                     onChange={(e) => setStoreAddress(e.target.value)}
@@ -186,10 +186,10 @@ export default function SettingsPage() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium text-zinc-300">
+                  <label htmlFor="f-appsettingspage-4" className="mb-1.5 block text-xs font-medium text-zinc-300">
                     Taxa Padrão de Delivery (R$)
                   </label>
-                  <input
+                  <input id="f-appsettingspage-4"
                     type="number"
                     step="0.50"
                     value={deliveryFee}
@@ -199,10 +199,10 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium text-zinc-300">
+                  <label htmlFor="f-appsettingspage-5" className="mb-1.5 block text-xs font-medium text-zinc-300">
                     Tempo Estimado (minutos)
                   </label>
-                  <input
+                  <input id="f-appsettingspage-5"
                     type="text"
                     value={deliveryTime}
                     onChange={(e) => setDeliveryTime(e.target.value)}
@@ -211,10 +211,10 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium text-zinc-300">
+                  <label htmlFor="f-appsettingspage-6" className="mb-1.5 block text-xs font-medium text-zinc-300">
                     Pedido Mínimo (R$)
                   </label>
-                  <input
+                  <input id="f-appsettingspage-6"
                     type="number"
                     step="1.00"
                     value={minOrder}
@@ -228,7 +228,7 @@ export default function SettingsPage() {
                 <label className="flex cursor-pointer items-center justify-between rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-4 transition-colors hover:border-zinc-700">
                   <div>
                     <p className="text-xs font-bold text-zinc-100">Aceitar Pedidos Online no App do Cliente</p>
-                    <p className="text-[11px] text-zinc-400">Permite que clientes façam pedidos em tempo real pela rota `/cliente`.</p>
+                    <p className="text-xs text-zinc-400">Permite que clientes façam pedidos em tempo real pela rota `/cliente`.</p>
                   </div>
                   <input
                     type="checkbox"
@@ -250,10 +250,10 @@ export default function SettingsPage() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium text-zinc-300">
+                  <label htmlFor="f-appsettingspage-7" className="mb-1.5 block text-xs font-medium text-zinc-300">
                     Frequência de Execução Automática
                   </label>
-                  <select
+                  <select id="f-appsettingspage-7"
                     value={rpaInterval}
                     onChange={(e) => setRpaInterval(e.target.value)}
                     className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-xs text-zinc-100 focus:border-yellow-400 focus:outline-none"
@@ -270,7 +270,7 @@ export default function SettingsPage() {
                 <label className="flex cursor-pointer items-center justify-between rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-3.5 transition-colors hover:border-zinc-700">
                   <div>
                     <p className="text-xs font-bold text-zinc-100">Sincronização Automática de Comandas PDV</p>
-                    <p className="text-[11px] text-zinc-400">Gera lançamentos contábeis assim que um pedido é marcado como entregue.</p>
+                    <p className="text-xs text-zinc-400">Gera lançamentos contábeis assim que um pedido é marcado como entregue.</p>
                   </div>
                   <input
                     type="checkbox"
@@ -283,7 +283,7 @@ export default function SettingsPage() {
                 <label className="flex cursor-pointer items-center justify-between rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-3.5 transition-colors hover:border-zinc-700">
                   <div>
                     <p className="text-xs font-bold text-zinc-100">Alerta de Insumos Críticos no Dashboard</p>
-                    <p className="text-[11px] text-zinc-400">Notifica o operador no sininho e no painel quando insumos atingem o estoque mínimo.</p>
+                    <p className="text-xs text-zinc-400">Notifica o operador no sininho e no painel quando insumos atingem o estoque mínimo.</p>
                   </div>
                   <input
                     type="checkbox"
@@ -309,9 +309,9 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-2">
                     <KeyRound className="h-4 w-4 text-yellow-400" />
                     <p className="font-bold text-xs text-zinc-100">Matriz de Permissões (RBAC)</p>
-                    <span className="rounded-full bg-yellow-400/20 px-2 py-0.5 text-[10px] font-bold text-yellow-400">Novo</span>
+                    <span className="rounded-full bg-yellow-400/20 px-2 py-0.5 text-xs font-bold text-yellow-400">Novo</span>
                   </div>
-                  <p className="text-[11px] text-zinc-400">
+                  <p className="text-xs text-zinc-400">
                     Gerencie visualmente com switches quais papéis (Admin, Atendente, Cozinheiro, etc.) têm permissão para cancelar pedidos, ver faturamento ou editar estoque.
                   </p>
                 </div>
