@@ -107,14 +107,28 @@ export function Sidebar() {
     }
   };
 
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        onClick={toggleCollapsed}
+        aria-label="Mostrar menu lateral"
+        title="Mostrar menu"
+        className="fixed left-0 top-1/2 z-40 flex h-14 w-5 -translate-y-1/2 items-center justify-center rounded-r-lg border border-l-0 border-zinc-700 bg-zinc-900 text-zinc-400 shadow-lg transition-all hover:w-7 hover:bg-yellow-400 hover:text-zinc-950"
+      >
+        <PanelLeftOpen className="h-3.5 w-3.5" />
+      </button>
+    );
+  }
+
   return (
-    <aside className={`flex h-full shrink-0 flex-col border-r border-zinc-800/60 bg-zinc-900 transition-[width] duration-200 ${collapsed ? "w-[72px]" : "w-64"}`}>
-      <div className={`border-b border-zinc-800/60 py-5 ${collapsed ? "px-3" : "px-5"}`}>
-        <div className={`flex items-center ${collapsed ? "flex-col gap-3" : "gap-3"}`}>
+    <aside className={`flex h-full shrink-0 flex-col border-r border-zinc-800/60 bg-zinc-900 w-64`}>
+      <div className={`border-b border-zinc-800/60 py-5 px-5`}>
+        <div className={`flex items-center gap-3`}>
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-yellow-400 text-zinc-950 shadow-lg shadow-yellow-400/20">
             <ChefHat className="h-5 w-5" />
           </span>
-          <div className={`min-w-0 flex-1 ${collapsed ? "hidden" : ""}`}>
+          <div className="min-w-0 flex-1">
             <p className="line-clamp-2 text-sm font-bold leading-snug tracking-tight text-yellow-400" title={brandName}>
               {brandName}
             </p>
@@ -123,15 +137,15 @@ export function Sidebar() {
           <button
             type="button"
             onClick={toggleCollapsed}
-            aria-label={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
-            aria-expanded={!collapsed}
-            title={collapsed ? "Expandir menu" : "Recolher menu"}
+            aria-label="Ocultar menu lateral"
+            aria-expanded
+            title="Ocultar menu"
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
           >
-            {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            <PanelLeftClose className="h-4 w-4" />
           </button>
         </div>
-        {user?.role === "superadmin" && !collapsed && (
+        {user?.role === "superadmin" && (
           <span className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-purple-500/40 bg-purple-500/15 px-2 py-1 text-xs font-semibold text-purple-300">
             <span className="h-1.5 w-1.5 rounded-full bg-purple-400" aria-hidden />
             Modo desenvolvedor
@@ -139,16 +153,14 @@ export function Sidebar() {
         )}
       </div>
 
-      <nav className={`flex-1 space-y-1 overflow-y-auto py-4 ${collapsed ? "px-2" : "px-3"}`}>
+      <nav className={`flex-1 space-y-1 overflow-y-auto py-4 px-3`}>
         {navItems.map(({ label, href, icon: Icon, highlight, roles }) => {
           const isActive = pathname === href;
           const content = (
             <Link
               key={label}
               href={href}
-              title={collapsed ? label : undefined}
-              aria-label={collapsed ? label : undefined}
-              className={`group flex items-center ${collapsed ? "justify-center px-0" : "justify-between px-3.5"} rounded-xl py-2.5 text-sm font-medium transition-all ${isActive
+              className={`group flex items-center justify-between px-3.5 rounded-xl py-2.5 text-sm font-medium transition-all ${isActive
                   ? "border-l-4 border-yellow-400 bg-zinc-950 text-yellow-400 font-semibold shadow-inner"
                   : highlight
                     ? "border-l-4 border-transparent text-amber-300 hover:bg-amber-400/10 hover:text-amber-200"
@@ -164,9 +176,9 @@ export function Sidebar() {
                         : "text-zinc-500 transition-colors group-hover:text-zinc-300"
                     }`}
                 />
-                {!collapsed && <span className="whitespace-nowrap">{label}</span>}
+                <span className="whitespace-nowrap">{label}</span>
               </div>
-              {highlight && !collapsed && (
+              {highlight && (
                 <span className="ml-2 shrink-0 rounded-full bg-amber-400/20 px-2 py-0.5 text-xs font-semibold text-amber-400">
                   App
                 </span>
@@ -186,20 +198,8 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className={`border-t border-zinc-800/60 ${collapsed ? "p-2" : "p-4"}`}>
+      <div className={`border-t border-zinc-800/60 p-4`}>
         <Can roles={["administrador", "superadmin"]}>
-          {collapsed ? (
-            <button
-              type="button"
-              onClick={runAllRobots}
-              disabled={rpaRunning}
-              aria-label="Executar RPA agora"
-              title="Executar RPA agora"
-              className="flex h-10 w-full items-center justify-center rounded-xl border border-yellow-400/60 bg-yellow-400/10 text-yellow-400 transition-all hover:bg-yellow-400 hover:text-zinc-950 disabled:opacity-50"
-            >
-              <Zap className="h-4 w-4" />
-            </button>
-          ) : (
           <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
@@ -229,15 +229,14 @@ export function Sidebar() {
             </button>
             {rpaMsg && <p className="mt-2 text-xs text-zinc-400">{rpaMsg}</p>}
           </div>
-          )}
         </Can>
 
         {user && (
-          <div className={`mt-3 flex items-center gap-2.5 rounded-xl border border-zinc-800 bg-zinc-950/80 p-2 ${collapsed ? "justify-center" : "px-3"}`} title={collapsed ? `${user.username} (${user.role})` : undefined}>
+          <div className={`mt-3 flex items-center gap-2.5 rounded-xl border border-zinc-800 bg-zinc-950/80 p-2 px-3`}>
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-yellow-400 text-xs font-black text-zinc-950 uppercase">
               {user.username.slice(0, 2)}
             </div>
-            <div className={`min-w-0 flex-1 leading-tight ${collapsed ? "hidden" : ""}`}>
+            <div className="min-w-0 flex-1 leading-tight">
               <p className="truncate text-xs font-semibold text-zinc-200">{user.username}</p>
               <p className="truncate text-xs font-medium text-yellow-400 capitalize">{user.role}</p>
             </div>
@@ -252,7 +251,7 @@ export function Sidebar() {
           className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-xs font-semibold text-zinc-400 transition-all hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400"
         >
           <LogOut className="h-3.5 w-3.5" />
-          {!collapsed && "Sair da conta"}
+          Sair da conta
         </button>
       </div>
     </aside>
