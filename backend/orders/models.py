@@ -74,6 +74,10 @@ class Pedido(models.Model):
         blank=True,
         verbose_name='código PIN de entrega',
     )
+    tentativas_pin = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name='tentativas incorretas de PIN',
+    )
     comprovante_entrega_url = models.CharField(
         max_length=255,
         null=True,

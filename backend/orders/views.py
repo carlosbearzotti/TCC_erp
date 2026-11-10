@@ -6,7 +6,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from .models import Pedido
-from .permissions import is_equipe
+from .permissions import PodeOperarPedidos, is_equipe
 from .serializers import PedidoSerializer
 from .services import transicionar_status
 from users.permissions import tem_permissao
@@ -39,7 +39,10 @@ class PedidoListCreateView(generics.ListCreateAPIView):
         )
         if minimo > 0 and subtotal < minimo:
             raise ValidationError(f'O pedido mínimo é de R$ {minimo:.2f}'.replace('.', ',') + '.')
-        serializer.save(cliente=self.request.user)
+        serializer.save(
+            cliente=self.request.user, entregador=None,
+            valor_recebido=0, troco=0,
+        )
 
 
 class PedidoDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -302,7 +305,8 @@ class OrderRemoveItemView(generics.GenericAPIView):
         return Response(serializer.data, status=200)
 
 
-import random
+import hmac
+import secrets
 from django.contrib.auth import get_user_model
 from core.models import Configuracao
 
@@ -369,10 +373,13 @@ class AtribuirEntregadorView(generics.GenericAPIView):
         # Atribui entregador e gera PIN de entrega se não existir
         pedido.entregador = entregador
         if not pedido.codigo_pin_entrega:
-            pedido.codigo_pin_entrega = f'{random.randint(1000, 9999)}'
+            pedido.codigo_pin_entrega = f'{secrets.randbelow(10000):04d}'
         pedido.save(update_fields=['entregador', 'codigo_pin_entrega', 'updated_at'])
 
         return Response(self.get_serializer(pedido).data, status=200)
+
+
+MAX_TENTATIVAS_PIN = 5
 
 
 class ConfirmarEntregaView(generics.GenericAPIView):
@@ -396,7 +403,11 @@ class ConfirmarEntregaView(generics.GenericAPIView):
         comprovante_url = request.data.get('comprovante_url')
 
         if metodo == 'pin':
-            if not pin_informado or pin_informado != pedido.codigo_pin_entrega:
+            if pedido.tentativas_pin >= MAX_TENTATIVAS_PIN:
+                raise PermissionDenied('PIN bloqueado por excesso de tentativas. Procure a loja.')
+            if not pin_informado or not hmac.compare_digest(pin_informado, pedido.codigo_pin_entrega or ''):
+                pedido.tentativas_pin += 1
+                pedido.save(update_fields=['tentativas_pin'])
                 raise ValidationError({'pin': 'Código PIN incorreto.'})
         elif metodo in ('foto', 'assinatura'):
             if not comprovante_url:
@@ -436,6 +447,8 @@ class FalhaEntregaView(generics.GenericAPIView):
 class EntregadoresDisponiveisView(generics.GenericAPIView):
     """Lista entregadores disponíveis para despacho com contagem de pedidos ativos."""
 
+    permission_classes = [PodeOperarPedidos]
+
     def get(self, request, *args, **kwargs):
         cfg_limite = Configuracao.objects.filter(chave='LIMITE_PEDIDOS_ENTREGADOR').first()
         limite = int(cfg_limite.valor) if cfg_limite and cfg_limite.valor.isdigit() else 4
@@ -456,4 +469,4 @@ class EntregadoresDisponiveisView(generics.GenericAPIView):
                 'limite_maximo': limite,
                 'disponivel_para_atribuir': ent.perfil.is_online and ativas < limite,
             })
-        return Response(data, status=200)
+        return Response(data, status=200)

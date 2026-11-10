@@ -1,4 +1,7 @@
+import secrets
+
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 User = get_user_model()
@@ -12,6 +15,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         model = User
         fields = ('id', 'username', 'email', 'first_name', 'password')
         read_only_fields = ('id',)
+
+    def validate_password(self, value):
+        validate_password(value)
+        return value
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)
@@ -31,8 +38,6 @@ class MeSerializer(serializers.ModelSerializer):
 
     def get_role(self, obj):
         if hasattr(obj, 'perfil') and obj.perfil and obj.perfil.role == 'superadmin':
-            return 'superadmin'
-        if obj.username == 'superadmin':
             return 'superadmin'
         if obj.is_superuser or getattr(obj, 'is_staff', False):
             return 'administrador'
@@ -93,7 +98,8 @@ class FuncionarioSerializer(serializers.ModelSerializer):
         if password:
             user.set_password(password)
         else:
-            user.set_password('12345678')
+            # Sem senha informada: gera uma aleatoria; o administrador deve definir outra
+            user.set_password(secrets.token_urlsafe(12))
         user.save()
 
         # Configurar perfil

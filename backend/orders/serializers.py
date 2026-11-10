@@ -1,6 +1,6 @@
 """Serializers do modulo de pedidos."""
 
-import random
+import secrets
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from rest_framework import serializers
@@ -162,7 +162,7 @@ class PedidoSerializer(serializers.ModelSerializer):
             cliente = request.user
 
         if not validated_data.get('numero_comanda'):
-            validated_data['numero_comanda'] = f"{random.randint(1000, 9999)}"
+            validated_data['numero_comanda'] = f"{secrets.randbelow(9000) + 1000}"
 
         tipo = validated_data.get('tipo_atendimento', 'mesa')
         if tipo == 'balcao' and not validated_data.get('numero_mesa'):
@@ -171,7 +171,7 @@ class PedidoSerializer(serializers.ModelSerializer):
             if not validated_data.get('numero_mesa'):
                 validated_data['numero_mesa'] = 'Delivery'
             if not validated_data.get('codigo_pin_entrega'):
-                validated_data['codigo_pin_entrega'] = f"{random.randint(1000, 9999):04d}"
+                validated_data['codigo_pin_entrega'] = f"{secrets.randbelow(10000):04d}"
             from core.services import obter_decimal_configuracao
             validated_data['taxa_entrega'] = obter_decimal_configuracao('taxa_entrega')
         elif tipo == 'retirada' and not validated_data.get('numero_mesa'):

@@ -22,9 +22,13 @@ class TurnoViewSet(viewsets.ModelViewSet):
     queryset = Turno.objects.all().select_related('user')
     serializer_class = TurnoSerializer
     permission_classes = [IsFuncionario]
+    # Turno so muda por check-in, checkout e acerto de caixa
+    http_method_names = ['get', 'post', 'head', 'options']
 
     def get_queryset(self):
         qs = super().get_queryset()
+        if not tem_permissao(self.request.user, 'FECHAR_CAIXA'):
+            qs = qs.filter(user=self.request.user)
         user_id = self.request.query_params.get('user_id')
         data = self.request.query_params.get('data')
         abertos = self.request.query_params.get('abertos')
