@@ -190,6 +190,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'EXCEPTION_HANDLER': 'config.exceptions.erp_exception_handler',
     'DEFAULT_PAGINATION_CLASS': 'config.pagination.ErpPagination',
     'PAGE_SIZE': 200,
     # Atras do proxy reverso o IP real vem do X-Forwarded-For (1 proxy); em dev, direto (0)

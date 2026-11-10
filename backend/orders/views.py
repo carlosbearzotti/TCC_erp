@@ -1,6 +1,8 @@
 """Views do modulo de pedidos."""
 
 from decimal import Decimal
+from django.db.models import Count, Q
+from django.utils import timezone
 from rest_framework import generics
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
@@ -12,11 +14,24 @@ from .services import transicionar_status
 from users.permissions import tem_permissao
 
 
+def inteiro_positivo(valor, campo, padrao=None):
+    """Converte valor de request.data em inteiro, respondendo 400 se invalido."""
+    if valor in (None, ''):
+        if padrao is not None:
+            return padrao
+        raise ValidationError({campo: 'Campo obrigatorio.'})
+    try:
+        numero = int(str(valor))
+    except ValueError:
+        raise ValidationError({campo: 'Informe um numero inteiro valido.'})
+    return numero
+
+
 class PedidoListCreateView(generics.ListCreateAPIView):
     """Lista ou cria pedidos, respeitando a visibilidade por perfil."""
 
     serializer_class = PedidoSerializer
-    queryset = Pedido.objects.all()
+    queryset = Pedido.objects.select_related('cliente', 'entregador', 'endereco', 'cancelled_by').prefetch_related('itens__produto')
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -164,12 +179,9 @@ class CloseShiftView(generics.GenericAPIView):
         if not tem_permissao(request.user, 'FECHAR_CAIXA'):
             raise PermissionDenied('Você não possui permissão para encerrar o expediente / fechar caixa.')
 
-        pedidos_para_arquivar = Pedido.objects.filter(status__in=['finalizado', 'cancelado'])
-        total_arquivados = pedidos_para_arquivar.count()
-
-        for pedido in pedidos_para_arquivar:
-            pedido.status = 'arquivado'
-            pedido.save(update_fields=['status', 'updated_at'])
+        total_arquivados = Pedido.objects.filter(status__in=['finalizado', 'cancelado']).update(
+            status='arquivado', updated_at=timezone.now()
+        )
 
         return Response({
             'arquivados': total_arquivados,
@@ -194,7 +206,7 @@ class OrderAddItemView(generics.GenericAPIView):
             )
 
         produto_id = request.data.get('produto')
-        quantidade = int(request.data.get('quantidade', 1))
+        quantidade = inteiro_positivo(request.data.get('quantidade'), 'quantidade', padrao=1)
 
         if not produto_id:
             raise ValidationError({'produto': 'O ID do produto e obrigatorio.'})
@@ -269,9 +281,7 @@ class OrderRemoveItemView(generics.GenericAPIView):
                 'Itens não podem ser removidos após o início do preparo do pedido.'
             )
 
-        item_id = request.data.get('item_id')
-        if not item_id:
-            raise ValidationError({'item_id': 'O ID do item e obrigatorio.'})
+        item_id = inteiro_positivo(request.data.get('item_id'), 'item_id')
 
         item = pedido.itens.filter(id=item_id).first()
         if not item:
@@ -341,9 +351,7 @@ class AtribuirEntregadorView(generics.GenericAPIView):
             raise ValidationError(
                 f'Nao e possivel atribuir entregador a um pedido {pedido.get_status_display().lower()}.'
             )
-        entregador_id = request.data.get('entregador_id')
-        if not entregador_id:
-            raise ValidationError({'entregador_id': 'ID do entregador é obrigatório.'})
+        entregador_id = inteiro_positivo(request.data.get('entregador_id'), 'entregador_id')
 
         try:
             entregador = User.objects.select_related('perfil').get(id=entregador_id)
@@ -453,13 +461,15 @@ class EntregadoresDisponiveisView(generics.GenericAPIView):
         cfg_limite = Configuracao.objects.filter(chave='LIMITE_PEDIDOS_ENTREGADOR').first()
         limite = int(cfg_limite.valor) if cfg_limite and cfg_limite.valor.isdigit() else 4
 
-        entregadores = User.objects.filter(perfil__role='entregador').select_related('perfil')
+        ativos = Q(entregas__status__in=['confirmado', 'em_preparo', 'pronto', 'retornando_base'])
+        entregadores = (
+            User.objects.filter(perfil__role='entregador')
+            .select_related('perfil')
+            .annotate(ativas=Count('entregas', filter=ativos))
+        )
         data = []
         for ent in entregadores:
-            ativas = Pedido.objects.filter(
-                entregador=ent,
-                status__in=['confirmado', 'em_preparo', 'pronto', 'retornando_base']
-            ).count()
+            ativas = ent.ativas
             data.append({
                 'id': ent.id,
                 'nome': f'{ent.first_name} {ent.last_name}'.strip() or ent.username,
