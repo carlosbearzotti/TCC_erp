@@ -34,3 +34,7 @@ backups/
 .claude/
 skills/
 images/
+
+# Artefatos de cobertura e resultados gerados pela APS
+.coverage
+backend/aps_qualidade/resultados/
