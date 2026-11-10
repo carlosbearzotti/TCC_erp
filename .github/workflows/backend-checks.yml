@@ -23,11 +23,24 @@ jobs:
           DEBUG: 'True'
         working-directory: backend
         run: python manage.py check
-      - name: Run tests
+      - name: Run tests with coverage
         working-directory: backend
         env:
           DEBUG: 'True'
-        run: python manage.py test
+        run: |
+          python -m pip install coverage
+          coverage run --branch --source=. --omit='*/migrations/*,*/aps_qualidade/*,*/tests.py,*/test_*.py,*/manage.py,*/seed_users.py' manage.py test
+          coverage report --fail-under=80
+      - name: Security scan (Bandit)
+        working-directory: backend
+        run: |
+          python -m pip install bandit
+          bandit -r . -x ./aps_qualidade,./*/migrations,./*/tests.py -ll
+      - name: Dependency audit (pip-audit)
+        working-directory: backend
+        run: |
+          python -m pip install pip-audit
+          pip-audit -r requirements.txt
 
   frontend:
     runs-on: ubuntu-latest

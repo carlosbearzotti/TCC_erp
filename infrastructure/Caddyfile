@@ -8,6 +8,10 @@
 	header {
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options DENY
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# Ignorado pelo navegador em HTTP puro; vale quando o site e servido por HTTPS
+		Strict-Transport-Security "max-age=31536000"
 		-Server
 	}
 
