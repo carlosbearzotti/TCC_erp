@@ -34,6 +34,11 @@ class Insumo(models.Model):
         ordering = ['nome']
         verbose_name = 'insumo'
         verbose_name_plural = 'insumos'
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(quantidade_atual__gte=0), name='insumo_saldo_nao_negativo'
+            )
+        ]
 
     def __str__(self):
         return self.nome

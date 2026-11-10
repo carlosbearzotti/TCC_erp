@@ -1,3 +1,4 @@
+import logging
 from django.contrib.auth import get_user_model
 from rest_framework import generics, viewsets, permissions, status
 from rest_framework.views import APIView
@@ -12,6 +13,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MeSerializer, RegisterSerializer, FuncionarioSerializer
 
 User = get_user_model()
+
+logger = logging.getLogger(__name__)
 
 
 class RegisterView(generics.CreateAPIView):
@@ -210,7 +213,7 @@ class RBACMatrixView(APIView):
                 detalhes=msg,
             )
         except Exception:
-            pass
+            logger.exception('Falha ao registrar auditoria de permissoes')
 
         return Response({
             'role': role,

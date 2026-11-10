@@ -1,5 +1,7 @@
 """Inventory API endpoints."""
 
+import logging
+
 from rest_framework import mixins
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
@@ -12,6 +14,8 @@ from .serializers import InsumoSerializer, MovimentacaoSerializer, ReceitaItemSe
 from django.db.models import F
 from rest_framework.decorators import action
 from rest_framework.response import Response
+
+logger = logging.getLogger(__name__)
 
 
 class InsumoViewSet(ModelViewSet):
@@ -73,7 +77,7 @@ class MovimentacaoViewSet(
                 detalhes=f'Movimentação de estoque: {mov.tipo} de {mov.quantidade} ({mov.motivo}) para o insumo {mov.insumo.nome}'
             )
         except Exception:
-            pass
+            logger.exception('Falha ao registrar auditoria de estoque')
 
 
 class ReceitaItemViewSet(ModelViewSet):

@@ -52,34 +52,42 @@ def recalcular_total(pedido):
 from decimal import Decimal
 
 
-def verificar_estoque(pedido):
-    """Verifica se ha estoque suficiente para todos os itens do pedido."""
-    from inventory.models import Movimentacao
+def calcular_insumos(pedido):
+    """Soma os insumos necessarios ao pedido conforme a ficha tecnica dos itens."""
     from collections import defaultdict
-    
-    insumos_necessarios = defaultdict(Decimal)
-    
+
+    total = defaultdict(Decimal)
     for item in pedido.itens.select_related('produto').all():
         for receita_item in item.produto.receita_itens.select_related('insumo').all():
-            insumos_necessarios[receita_item.insumo] += receita_item.quantidade_necessaria * item.quantidade
-            
-    for insumo, qtd in insumos_necessarios.items():
-        if insumo.quantidade_atual < qtd:
+            total[receita_item.insumo] += receita_item.quantidade_necessaria * item.quantidade
+    return total
+
+
+def verificar_estoque(pedido):
+    """Verifica se ha estoque suficiente, bloqueando as linhas dos insumos.
+
+    Deve ser chamada dentro de transaction.atomic(): o bloqueio impede que duas
+    confirmacoes simultaneas consumam o mesmo saldo.
+    """
+    from inventory.models import Insumo
+
+    necessarios = calcular_insumos(pedido)
+    atuais = {
+        i.pk: i for i in Insumo.objects.select_for_update().filter(pk__in=[i.pk for i in necessarios])
+    }
+    for insumo, qtd in necessarios.items():
+        disponivel = atuais[insumo.pk].quantidade_atual
+        if disponivel < qtd:
             raise ValidationError(
                 f'Estoque insuficiente para o insumo: {insumo.nome}. '
-                f'Necessario: {qtd}, Disponivel: {insumo.quantidade_atual}'
+                f'Necessario: {qtd}, Disponivel: {disponivel}'
             )
 
 def debitar_estoque(pedido, responsavel=None):
     """Debita do estoque os insumos proporcionais a receita do pedido."""
     from inventory.models import Movimentacao
-    from collections import defaultdict
-    
-    insumos_necessarios = defaultdict(Decimal)
-    
-    for item in pedido.itens.select_related('produto').all():
-        for receita_item in item.produto.receita_itens.select_related('insumo').all():
-            insumos_necessarios[receita_item.insumo] += receita_item.quantidade_necessaria * item.quantidade
+
+    insumos_necessarios = calcular_insumos(pedido)
             
     for insumo, qtd in insumos_necessarios.items():
         Movimentacao.objects.create(
@@ -94,13 +102,8 @@ def debitar_estoque(pedido, responsavel=None):
 def devolver_estoque(pedido, responsavel=None):
     """Devolve/estorna ao estoque os insumos debitados do pedido cancelado."""
     from inventory.models import Movimentacao
-    from collections import defaultdict
 
-    insumos_necessarios = defaultdict(Decimal)
-
-    for item in pedido.itens.select_related('produto').all():
-        for receita_item in item.produto.receita_itens.select_related('insumo').all():
-            insumos_necessarios[receita_item.insumo] += receita_item.quantidade_necessaria * item.quantidade
+    insumos_necessarios = calcular_insumos(pedido)
 
     for insumo, qtd in insumos_necessarios.items():
         Movimentacao.objects.create(
@@ -127,10 +130,10 @@ def transicionar_status(pedido, novo_status, responsavel=None, motivo=None, devo
 
     status_anterior = pedido.status
 
-    if novo_status == 'confirmado':
-        verificar_estoque(pedido)
-
     with transaction.atomic():
+        if novo_status == 'confirmado':
+            verificar_estoque(pedido)
+
         pedido.status = novo_status
         update_fields = ['status', 'updated_at']
 
@@ -171,7 +174,7 @@ def transicionar_status(pedido, novo_status, responsavel=None, motivo=None, devo
                     detalhes=f'Pedido #{pedido.id} cancelado. Motivo: {motivo or "Não informado"}'
                 )
             except Exception:
-                pass
+                logger.exception('Falha ao registrar auditoria do pedido #%s', pedido.id)
 
         pedido.save(update_fields=update_fields)
 
@@ -186,7 +189,7 @@ def transicionar_status(pedido, novo_status, responsavel=None, motivo=None, devo
                     detalhes=f'Pedido #{pedido.id} liberado para nova tentativa de entrega',
                 )
             except Exception:
-                pass
+                logger.exception('Falha ao registrar auditoria do pedido #%s', pedido.id)
 
         if novo_status == 'confirmado':
             Preparo.objects.get_or_create(
