@@ -74,23 +74,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const fetchCurrentUser = useCallback(async (): Promise<User | null> => {
-    try {
-      const response = await api.get("/users/me/");
-      const userData: User = {
-        ...response.data,
-        permissions: response.data.permissions || [],
-      };
+    // Falha de rede (servidor reiniciando, Wi-Fi oscilando) não é sessão inválida:
+    // tenta de novo algumas vezes e só limpa a sessão se o servidor recusar o token.
+    // 40 x 3 s = 2 min: cobre a reinicialização completa do backend (migrações na partida)
+    const MAX_TENTATIVAS = 40;
+    for (let tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
+      try {
+        const response = await api.get("/users/me/");
+        const userData: User = {
+          ...response.data,
+          permissions: response.data.permissions || [],
+        };
 
-      setUser(userData);
-      if (userData.role) {
-        Cookies.set("user_role", userData.role, { expires: 1, path: "/" });
+        setUser(userData);
+        if (userData.role) {
+          Cookies.set("user_role", userData.role, { expires: 1, path: "/" });
+        }
+        return userData;
+      } catch (err: any) {
+        const status = err?.response?.status;
+        if (status === 401 || status === 403) {
+          console.warn("Sessão recusada pelo servidor:", err);
+          clearAuthData();
+          return null;
+        }
+        if (tentativa === MAX_TENTATIVAS) {
+          console.warn("Servidor indisponível ao recuperar a sessão; mantendo o login:", err);
+          return null;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 3000));
       }
-      return userData;
-    } catch (err) {
-      console.warn("Falha ao recuperar sessão do usuário:", err);
-      clearAuthData();
-      return null;
     }
+    return null;
   }, [clearAuthData]);
 
   // Montagem inicial: Migração suave localStorage -> Cookies & Carregamento de Perfil

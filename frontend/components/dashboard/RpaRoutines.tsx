@@ -2,45 +2,39 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Play, RefreshCw } from "lucide-react";
+import { AlertTriangle, ArrowRight, CheckCircle2, Clock, Play, RefreshCw } from "lucide-react";
+import api from "../../services/api";
+import { apiErrorMessage } from "@/lib/errors";
+import { useRpaStatus, formatRun } from "../../hooks/useRpaStatus";
 
-interface Routine {
-  id: string;
-  name: string;
-  lastRun: string;
-  status: "Sucesso" | "Executando" | "Pendente";
-}
+// Mesmos robôs da central RPA (/rpa); a execução e o histórico vêm do backend.
+const ROTINAS = [
+  { id: "rpa-01", name: "Sincronização de pedidos" },
+  { id: "rpa-02", name: "Alerta de estoque crítico" },
+  { id: "rpa-03", name: "Conciliação do caixa do dia" },
+];
 
 export function RpaRoutines() {
-  const [routines, setRoutines] = useState<Routine[]>([
-    { id: "1", name: "Sincronizar pedidos do PDV", lastRun: "Hoje às 10:15", status: "Sucesso" },
-    { id: "2", name: "Atualizar estoque e baixa de insumos", lastRun: "Hoje às 10:20", status: "Sucesso" },
-    { id: "3", name: "Emitir relatório e fechamento diário", lastRun: "Hoje às 10:30", status: "Sucesso" },
-    { id: "4", name: "Conciliação bancária de pagamentos", lastRun: "Hoje às 10:40", status: "Sucesso" },
-  ]);
-
-  const [selectedRoutine, setSelectedRoutine] = useState("");
+  const rpa = useRpaStatus();
+  const [selected, setSelected] = useState("");
   const [isRunning, setIsRunning] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const handleExecute = () => {
-    if (!selectedRoutine) return;
+  const handleExecute = async () => {
+    if (!selected) return;
+    const nome = ROTINAS.find((r) => r.id === selected)?.name ?? selected;
     setIsRunning(true);
     setMessage(null);
-
-    setTimeout(() => {
-      const nowTime = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-      setRoutines((prev) =>
-        prev.map((r) =>
-          r.name === selectedRoutine
-            ? { ...r, lastRun: `Hoje às ${nowTime}`, status: "Sucesso" }
-            : r
-        )
-      );
+    try {
+      const res = await api.post("/core/rpa/execute/", { task_id: selected });
+      setMessage({ ok: true, text: `${nome}: ${res.data?.mensagem ?? "executado"}.` });
+      rpa.refresh();
+    } catch (err: any) {
+      setMessage({ ok: false, text: apiErrorMessage(err, `Falha ao executar "${nome}".`) });
+    } finally {
       setIsRunning(false);
-      setMessage(`Rotina "${selectedRoutine}" executada com sucesso!`);
-      setTimeout(() => setMessage(null), 4000);
-    }, 1200);
+      setTimeout(() => setMessage(null), 6000);
+    }
   };
 
   return (
@@ -59,56 +53,71 @@ export function RpaRoutines() {
       </div>
 
       <ul className="mt-4 space-y-2 px-5">
-        {routines.map((routine) => (
-          <li
-            key={routine.id}
-            className="flex items-center gap-3 rounded-xl border border-line/60 bg-canvas/50 px-4 py-3 transition-colors hover:border-line"
-          >
-            <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-ink">
-                {routine.name}
-              </p>
-              <p className="text-xs text-muted">{routine.lastRun}</p>
-            </div>
-            <span className="text-xs font-semibold text-success">
-              {routine.status}
-            </span>
-          </li>
-        ))}
+        {ROTINAS.map((routine) => {
+          const last = rpa.lastRunOf(routine.id);
+          return (
+            <li
+              key={routine.id}
+              className="flex items-center gap-3 rounded-xl border border-line/60 bg-canvas/50 px-4 py-3 transition-colors hover:border-line"
+            >
+              {last ? (
+                <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
+              ) : (
+                <Clock className="h-5 w-5 shrink-0 text-muted" />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-ink">
+                  {routine.name}
+                </p>
+                <p className="text-xs text-muted">Última execução: {formatRun(last)}</p>
+              </div>
+              <span className={`text-xs font-semibold ${last ? "text-success" : "text-muted"}`}>
+                {last ? `${rpa.countOf(routine.id)}x` : "Pendente"}
+              </span>
+            </li>
+          );
+        })}
       </ul>
 
       {message && (
-        <div className="mx-5 mt-3 rounded-xl border border-success/20 bg-success/10 p-2.5 text-center text-xs font-medium text-success   duration-200">
-          {message}
+        <div
+          role="status"
+          className={`mx-5 mt-3 flex items-center justify-center gap-2 rounded-xl border p-2.5 text-center text-xs font-medium ${
+            message.ok
+              ? "border-success/20 bg-success/10 text-success"
+              : "border-danger/20 bg-danger/10 text-danger"
+          }`}
+        >
+          {!message.ok && <AlertTriangle className="h-4 w-4 shrink-0" />}
+          {message.text}
         </div>
       )}
 
       <div className="mt-auto border-t border-line/60 p-5">
-        <p className="text-xs font-semibold   text-soft">
+        <p className="text-xs font-semibold text-soft">
           Execução Manual de Rotinas
         </p>
         <div className="mt-3 flex gap-2">
           <select
             aria-label="Selecionar rotina"
-            value={selectedRoutine}
-            onChange={(e) => setSelectedRoutine(e.target.value)}
+            value={selected}
+            onChange={(e) => setSelected(e.target.value)}
             className="w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-soft outline-none transition-colors focus:border-accent"
           >
             <option value="" disabled>
               Selecionar rotina...
             </option>
-            {routines.map((routine) => (
-              <option key={routine.id} value={routine.name}>
+            {ROTINAS.map((routine) => (
+              <option key={routine.id} value={routine.id}>
                 {routine.name}
               </option>
             ))}
           </select>
           <button
             type="button"
-            disabled={!selectedRoutine || isRunning}
+            disabled={!selected || isRunning}
             onClick={handleExecute}
-            className="flex shrink-0 items-center gap-2 rounded-lg border border-accent/70 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-ink hover: hover: disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex shrink-0 items-center gap-2 rounded-lg border border-accent/70 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-accent-ink disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isRunning ? (
               <RefreshCw className="h-4 w-4 animate-spin" />

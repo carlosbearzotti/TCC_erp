@@ -41,7 +41,12 @@ async function refreshAccessToken(): Promise<string | null> {
     Cookies.set('access_token', newToken, { expires: 1, path: '/' });
     localStorage.setItem('access_token', newToken);
     return newToken;
-  } catch (err) {
+  } catch (err: any) {
+    // Sem resposta do servidor (falha de rede): não derruba a sessão, a próxima requisição tenta de novo
+    if (!err?.response) {
+      console.warn('Servidor indisponível ao renovar a sessão:', err);
+      return null;
+    }
     console.warn('Sessão expirada ou token inválido:', err);
     Cookies.remove('access_token', { path: '/' });
     Cookies.remove('refresh_token', { path: '/' });
@@ -100,12 +105,15 @@ api.interceptors.response.use(
         });
       }
 
+      // Só volta ao login se a sessão foi de fato encerrada (refresh recusado);
+      // em falha de rede o token de renovação continua guardado e a tela tenta de novo.
+      const sessaoEncerrada = typeof window !== 'undefined' && !Cookies.get('refresh_token');
       const isPublicPage =
         typeof window !== 'undefined' &&
         (window.location.pathname.startsWith('/cliente') ||
           window.location.pathname === '/login' ||
           window.location.pathname === '/unauthorized');
-      if (!isPublicPage && typeof window !== 'undefined') {
+      if (sessaoEncerrada && !isPublicPage && typeof window !== 'undefined') {
         window.location.href = '/login';
       }
     }
