@@ -78,8 +78,8 @@ class Pedido(models.Model):
         default=0,
         verbose_name='tentativas incorretas de PIN',
     )
-    comprovante_entrega_url = models.CharField(
-        max_length=255,
+    # Guarda a URL da foto ou a assinatura desenhada (imagem em base64, maior que 255 caracteres)
+    comprovante_entrega_url = models.TextField(
         null=True,
         blank=True,
         verbose_name='comprovante de entrega',

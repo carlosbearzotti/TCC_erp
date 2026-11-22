@@ -191,6 +191,20 @@ export default function GestaoBalcaoPage() {
     }
   }
 
+  // Pedido vindo do app do cliente chega como "criado": aceitar confirma, baixa o estoque e manda para a cozinha
+  const handleAcceptOrder = async (orderId: number) => {
+    setLoadingAction(true)
+    try {
+      await api.patch(`/orders/${orderId}/`, { status: "confirmado" })
+      mutate("/orders/")
+      showFeedback(`Pedido #${orderId} aceito e enviado para a cozinha.`)
+    } catch (err: any) {
+      notify(apiErrorMessage(err, "Erro ao aceitar pedido."))
+    } finally {
+      setLoadingAction(false)
+    }
+  }
+
   const handleResendDelivery = async (orderId: number) => {
     setLoadingAction(true)
     try {
@@ -542,6 +556,18 @@ export default function GestaoBalcaoPage() {
                                 <XCircle className="h-4 w-4" />
                               </button>
                             </Can>
+                          )}
+
+                          {/* Aceitar pedido do app (criado -> confirmado) */}
+                          {order.status === "criado" && (
+                            <button
+                              onClick={() => handleAcceptOrder(order.id)}
+                              disabled={loadingAction}
+                              className="flex items-center gap-1.5 rounded-lg border border-accent px-3 py-1.5 text-sm font-bold text-accent hover:bg-accent hover:text-accent-ink disabled:opacity-50"
+                            >
+                              <Flame className="h-3.5 w-3.5" />
+                              <span>Aceitar</span>
+                            </button>
                           )}
 
                           {/* Cobrar / Pagar */}

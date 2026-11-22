@@ -229,7 +229,7 @@ export default function ConsumerApp() {
     if (cartItems.length === 0) return
 
     if (deliveryType === "entrega") {
-      if (!cep || !logradouro || !numero || !bairro || !cidade) {
+      if (!cep || !logradouro || !numero || !bairro || !cidade || uf.length !== 2) {
         notify("Preencha todos os campos obrigatórios do endereço.")
         return
       }
@@ -665,13 +665,23 @@ export default function ConsumerApp() {
                         <input aria-label="Bairro" placeholder="Bairro" value={bairro} onChange={(e) => setBairro(e.target.value)} className="h-12 w-full rounded-lg border border-line-strong bg-canvas px-3.5 text-base text-ink placeholder:text-faint focus:border-accent focus:outline-none" />
                         <input aria-label="Complemento" autoComplete="address-line2" placeholder="Complemento" value={complemento} onChange={(e) => setComplemento(e.target.value)} className="h-12 w-full rounded-lg border border-line-strong bg-canvas px-3.5 text-base text-ink placeholder:text-faint focus:border-accent focus:outline-none" />
                       </div>
-                      {cidade && <p className="text-sm text-muted">{cidade}{uf ? `/${uf}` : ""}</p>}
+                      {/* Cidade e UF editáveis: o ViaCEP só preenche se houver internet */}
+                      <div className="grid grid-cols-3 gap-2">
+                        <input aria-label="Cidade" autoComplete="address-level2" placeholder="Cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} className="col-span-2 h-12 w-full rounded-lg border border-line-strong bg-canvas px-3.5 text-base text-ink placeholder:text-faint focus:border-accent focus:outline-none" />
+                        <input aria-label="UF" autoComplete="address-level1" placeholder="UF" maxLength={2} value={uf} onChange={(e) => setUf(e.target.value.toUpperCase())} className="h-12 w-full rounded-lg border border-line-strong bg-canvas px-3.5 text-base uppercase text-ink placeholder:text-faint focus:border-accent focus:outline-none" />
+                      </div>
                     </fieldset>
                   )}
 
                   <button
                     type="button"
-                    onClick={() => setCheckoutStep("payment")}
+                    onClick={() => {
+                      if (deliveryType === "entrega" && (!cep || !logradouro || !numero || !bairro || !cidade || uf.length !== 2)) {
+                        notify("Preencha CEP, rua, número, bairro, cidade e UF para a entrega.")
+                        return
+                      }
+                      setCheckoutStep("payment")
+                    }}
                     className="flex h-14 w-full items-center justify-center rounded-lg bg-accent text-lg font-bold text-accent-ink hover:bg-accent-hover"
                   >
                     Continuar para o pagamento
