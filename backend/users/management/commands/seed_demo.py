@@ -10,8 +10,12 @@ Não use em um estabelecimento real: o objetivo é apresentar o sistema com dado
 
 import os
 from decimal import Decimal
+from pathlib import Path
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.files import File
+from django.utils.text import slugify
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
@@ -25,6 +29,9 @@ from preparation.models import Preparo
 from users.models import Perfil
 
 User = get_user_model()
+
+# Fotos opcionais dos produtos, nomeadas pelo slug do produto (ex.: x-burger.jpeg)
+IMAGENS_DIR = Path(settings.BASE_DIR) / 'demo_imagens'
 
 # (nome, unidade, saldo, minimo)
 INSUMOS = [
@@ -152,6 +159,7 @@ class Command(BaseCommand):
                 nome=nome,
                 defaults={'categoria': cat, 'preco': Decimal(preco), 'descricao': descricao, 'disponibilidade': True},
             )
+            self._foto(produto)
             for insumo_nome, qtd in receita:
                 ReceitaItem.objects.update_or_create(
                     produto=produto,
@@ -160,6 +168,16 @@ class Command(BaseCommand):
                 )
             produtos[nome] = produto
         return produtos
+
+    def _foto(self, produto):
+        """Anexa a foto de backend/demo_imagens/<slug>.* se existir e o produto ainda não tiver imagem."""
+        if produto.imagem:
+            return
+        slug = slugify(produto.nome.split('(')[0])
+        for arquivo in sorted(IMAGENS_DIR.glob(f'{slug}.*')):
+            with arquivo.open('rb') as f:
+                produto.imagem.save(arquivo.name, File(f), save=True)
+            return
 
     def _novo_pedido(self, cliente, tipo, itens, comanda, pagamento='dinheiro', endereco=None):
         pedido = Pedido.objects.create(
