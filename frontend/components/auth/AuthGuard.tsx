@@ -42,7 +42,12 @@ export function resolveRedirect(
 
   // 1. Rota pública: liberada (usuário logado em /login vai para o seu ambiente)
   if (isPublic) {
-    return isAuthenticated && user && pathname === "/login" ? homeFor(user.role) : null;
+    if (isAuthenticated && user && pathname === "/login") return homeFor(user.role);
+    // Perfis operacionais logados não ficam presos na vitrine do cliente (ex.: app instalado reaberto)
+    if (isAuthenticated && user && pathname.startsWith("/cliente") && ["entregador", "cozinheiro", "atendente"].includes(user.role)) {
+      return homeFor(user.role);
+    }
+    return null;
   }
 
   // 2. Não autenticado em rota protegida -> Login

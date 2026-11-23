@@ -16,5 +16,5 @@ export function homeFor(role?: string | null): string {
 
 /** Para onde ir após sair: apps mobile (cliente/entregador) voltam à tela pública; equipe volta ao login. */
 export function logoutDestination(role?: string | null): string {
-  return role === "cliente" || role === "entregador" ? "/cliente" : "/login"
+  return role === "cliente" ? "/cliente" : "/login"
 }

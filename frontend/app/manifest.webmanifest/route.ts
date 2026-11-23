@@ -33,7 +33,8 @@ export async function GET() {
       name: `${nome} - Cardápio Digital`,
       short_name: nome.slice(0, 12),
       description: `Cardápio digital e autoatendimento de ${nome}`,
-      start_url: "/cliente",
+      // A raiz leva cada perfil ao seu ambiente (proxy.ts); sem login, cai na tela de login
+      start_url: "/",
       display: "standalone",
       orientation: "portrait",
       background_color: "#000000",
