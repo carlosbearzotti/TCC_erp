@@ -38,3 +38,6 @@ images/
 # Artefatos de cobertura e resultados gerados pela APS
 .coverage
 backend/aps_qualidade/resultados/
+
+# Fotos da demonstracao (direitos de imagem de terceiros, ficam so local)
+backend/demo_imagens/
