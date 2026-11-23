@@ -17,3 +17,56 @@ export function formatDuration(minutes: number): string {
   const rh = h % 24
   return rh ? `${d} d ${rh} h` : `${d} d`
 }
+
+/** Rótulo legível da forma de pagamento ("cartao_credito" -> "Cartão de crédito"). */
+export const PAYMENT_LABELS: Record<string, string> = {
+  dinheiro: "Dinheiro",
+  cartao_debito: "Cartão de débito",
+  cartao_credito: "Cartão de crédito",
+  pix: "Pix",
+  outros: "Outros",
+}
+
+export function paymentLabel(method: string | null | undefined): string {
+  if (!method) return "Outros"
+  return PAYMENT_LABELS[method] ?? capitalizeCode(method)
+}
+
+/** Rótulo legível do status do pedido, com a mesma grafia em todas as telas. */
+export const ORDER_STATUS_LABELS: Record<string, string> = {
+  criado: "Criado",
+  confirmado: "Confirmado",
+  em_preparo: "Em preparo",
+  pronto: "Pronto",
+  entregue: "Entregue",
+  finalizado: "Finalizado",
+  arquivado: "Arquivado",
+  retornando_base: "Retornando à base",
+  cancelado: "Cancelado",
+}
+
+export function orderStatusLabel(status: string | null | undefined): string {
+  if (!status) return ""
+  return ORDER_STATUS_LABELS[status] ?? capitalizeCode(status)
+}
+
+/** "em_preparo" -> "Em preparo": fallback para códigos sem rótulo cadastrado. */
+function capitalizeCode(code: string): string {
+  const text = code.replace(/_/g, " ").trim().toLowerCase()
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
+const QTY = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 3 })
+
+/** Quantidade no padrão brasileiro com unidade: "10 kg", "0,5 L", "12 un". */
+export function formatQty(value: number | string | null | undefined, unit?: string | null): string {
+  const n = QTY.format(Number(value) || 0)
+  return unit ? `${n} ${formatUnit(unit)}` : n
+}
+
+export function formatUnit(unit: string): string {
+  const u = unit.trim().toUpperCase()
+  if (u === "L") return "L"
+  if (u === "UN" || u === "UND" || u === "UNID") return "un"
+  return u.toLowerCase()
+}

@@ -1,5 +1,6 @@
 "use client"
 
+import { formatQty, formatUnit } from "@/lib/format"
 import { notify, askConfirm } from "@/components/ui/feedback";
 import { useState } from "react"
 import useSWR, { mutate } from "swr"
@@ -208,7 +209,7 @@ export default function Inventory() {
                     <TableCell>
                       <div className="flex flex-col space-y-1.5 w-full max-w-[160px]">
                         <span className="font-display text-2xl text-ink">
-                          {current.toFixed(2)} <span className="text-base text-muted">{item.unidade_medida}</span>
+                          {formatQty(current)} <span className="text-base text-muted">{formatUnit(item.unidade_medida)}</span>
                         </span>
                         <div className="h-1.5 w-full bg-raised">
                           <div
@@ -219,7 +220,7 @@ export default function Inventory() {
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-soft">
-                      {min.toFixed(2)} {item.unidade_medida}
+                      {formatQty(min, item.unidade_medida)}
                     </TableCell>
                     <TableCell>
                       <StatusTag tone={statusTone}>{statusText}</StatusTag>

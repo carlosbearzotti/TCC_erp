@@ -1,5 +1,6 @@
 "use client"
 
+import { paymentLabel } from "@/lib/format"
 import { useEffect, useMemo, useState } from "react"
 import { apiErrorMessage } from "@/lib/errors"
 import { Dialog } from "@/components/ui/dialog"
@@ -590,7 +591,7 @@ export default function OrdersPOS() {
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-paper-muted">Pagamento</dt>
-                  <dd className="font-semibold capitalize">{successOrder.payment_method?.replace("_", " ") || paymentMethod}</dd>
+                  <dd className="font-semibold">{paymentLabel(successOrder.payment_method || paymentMethod)}</dd>
                 </div>
                 {successOrder.payment_method === "dinheiro" && Number(successOrder.troco) > 0 && (
                   <div className="flex justify-between font-bold">

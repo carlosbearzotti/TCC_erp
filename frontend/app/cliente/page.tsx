@@ -1,5 +1,6 @@
 "use client"
 
+import { orderStatusLabel } from "@/lib/format"
 import { notify, askConfirm } from "@/components/ui/feedback";
 import { Dialog } from "@/components/ui/dialog"
 import { useState } from "react"
@@ -839,7 +840,7 @@ export default function ConsumerApp() {
                       retornando_base: { tone: "danger", label: "Entrega não concluída" },
                       cancelado: { tone: "danger", label: "Cancelado" },
                     }
-                    const info = st[ord.status] ?? { tone: "neutral" as const, label: ord.status }
+                    const info = st[ord.status] ?? { tone: "neutral" as const, label: orderStatusLabel(ord.status) }
                     return (
                       <li key={ord.id} className="flex items-center justify-between gap-3 py-4">
                         <div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatQty } from "@/lib/format"
 import Link from "next/link";
 import useSWR from "swr";
 import { ArrowRight, RefreshCw } from "lucide-react";
@@ -80,8 +81,8 @@ export function InventoryControl() {
                     className="border-b border-line/60 transition-colors last:border-0 hover:bg-raised/40"
                   >
                     <td className="px-4 py-3 text-ink font-medium">{item.nome}</td>
-                    <td className="px-4 py-3 text-ink font-bold">{current} {item.unidade_medida}</td>
-                    <td className="px-4 py-3 text-muted">{min} {item.unidade_medida}</td>
+                    <td className="px-4 py-3 text-ink font-bold">{formatQty(current, item.unidade_medida)}</td>
+                    <td className="px-4 py-3 text-muted">{formatQty(min, item.unidade_medida)}</td>
                     <td className="px-4 py-3">
                       <StatusBadge label={label} tone={tone} />
                     </td>

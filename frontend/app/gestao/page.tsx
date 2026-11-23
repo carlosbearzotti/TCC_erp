@@ -1,7 +1,7 @@
 "use client"
 
 import { notify, askConfirm } from "@/components/ui/feedback";
-import { brl } from "@/lib/format"
+import { brl, paymentLabel, orderStatusLabel } from "@/lib/format"
 import { buttonClass } from "@/components/ui/button"
 import { apiErrorMessage } from "@/lib/errors"
 import { Dialog } from "@/components/ui/dialog"
@@ -284,7 +284,7 @@ export default function GestaoBalcaoPage() {
       retornando_base: { tone: "danger", label: "Retornando à base", pulse: true },
       arquivado: { tone: "neutral", label: "Arquivado" },
     }
-    const m = map[status] ?? { tone: "neutral" as const, label: status }
+    const m = map[status] ?? { tone: "neutral" as const, label: orderStatusLabel(status) }
     return (
       <StatusTag tone={m.tone} pulse={m.pulse}>
         {m.label}
@@ -504,7 +504,7 @@ export default function GestaoBalcaoPage() {
                       {/* Pagamento */}
                       <td className="py-3 px-3">
                         <span className="capitalize font-medium text-soft block">
-                          {order.payment_method?.replace("_", " ")}
+                          {paymentLabel(order.payment_method)}
                         </span>
                         {order.status === "finalizado" && order.troco && Number(order.troco) > 0 && (
                           <span className="text-xs text-success font-bold">
@@ -660,7 +660,7 @@ export default function GestaoBalcaoPage() {
               </div>
               <div className="flex justify-between text-soft">
                 <span>Forma de Pagamento:</span>
-                <span className="capitalize font-semibold text-ink">{selectedOrderForDetails.payment_method?.replace("_", " ")}</span>
+                <span className="font-semibold text-ink">{paymentLabel(selectedOrderForDetails.payment_method)}</span>
               </div>
               {selectedOrderForDetails.valor_recebido && Number(selectedOrderForDetails.valor_recebido) > 0 && (
                 <div className="flex justify-between text-soft">

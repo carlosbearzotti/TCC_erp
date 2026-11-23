@@ -1,5 +1,6 @@
 "use client";
 
+import { paymentLabel, orderStatusLabel } from "@/lib/format"
 import Link from "next/link";
 import useSWR from "swr";
 import { ArrowRight, RefreshCw } from "lucide-react";
@@ -103,7 +104,7 @@ export function RecentOrders() {
                       #{order.id}
                     </td>
                     <td className="px-3 py-3 text-soft">{dateStr}</td>
-                    <td className="px-3 py-3 text-soft capitalize">{order.payment_method || "Outros"}</td>
+                    <td className="px-3 py-3 text-soft">{paymentLabel(order.payment_method)}</td>
                     <td className="px-3 py-3 text-soft">
                       {order.itens?.reduce((sum, i) => sum + i.quantidade, 0) || 1} itens
                     </td>
@@ -112,7 +113,7 @@ export function RecentOrders() {
                     </td>
                     <td className="px-3 py-3">
                       <StatusBadge
-                        label={statusLabels[order.status] || order.status}
+                        label={statusLabels[order.status] || orderStatusLabel(order.status)}
                         tone={orderStatusTone[order.status] || "yellow"}
                       />
                     </td>

@@ -18,7 +18,7 @@ const routeRoles: Record<string, string[]> = {
   "/settings": ["administrador", "superadmin"],
 };
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 1. Deixar rotas públicas e recursos estáticos passarem livremente
@@ -95,7 +95,7 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// Configuração para dizer ao Next.js em quais rotas o middleware deve agir
+// Configuração para dizer ao Next.js em quais rotas o proxy deve agir
 export const config = {
   matcher: [
     /*

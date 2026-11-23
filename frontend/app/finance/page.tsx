@@ -1,5 +1,6 @@
 "use client";
 
+import { PAYMENT_LABELS } from "@/lib/format"
 import { notify, askConfirm } from "@/components/ui/feedback";
 import { buttonClass } from "@/components/ui/button"
 import { apiErrorMessage } from "@/lib/errors"
@@ -72,13 +73,6 @@ interface Resumo {
   saldo: string | number;
 }
 
-const PAYMENT_LABELS: Record<string, string> = {
-  dinheiro: "Dinheiro",
-  cartao_debito: "Cartão Débito",
-  cartao_credito: "Cartão Crédito",
-  pix: "Pix",
-  outros: "Outros",
-};
 
 export default function FinancePage() {
   // Estados de Filtro
@@ -590,8 +584,8 @@ export default function FinancePage() {
                     </td>
                     <td className="py-3 px-4 font-medium text-ink">
                       {l.description}
-                      {l.pedido && (
-                        <span className="ml-2 text-xs font-semibold text-muted">pedido {l.pedido}</span>
+                      {l.pedido && !l.description?.includes(`#${l.pedido}`) && (
+                        <span className="ml-2 text-xs font-semibold text-muted">Pedido #{l.pedido}</span>
                       )}
                     </td>
                     <td className="py-3 px-4 text-soft">

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatQty } from "@/lib/format"
 import Link from "next/link";
 import useSWR from "swr";
 import { ArrowRight, Package, AlertTriangle, RefreshCw } from "lucide-react";
@@ -66,7 +67,7 @@ export function CriticalStock() {
                       {item.nome}
                     </p>
                     <p className="text-xs text-muted">
-                      Atual: <span className="font-bold text-danger">{current} {item.unidade_medida}</span> (Mínimo: {min} {item.unidade_medida})
+                      Atual: <span className="font-bold text-danger">{formatQty(current, item.unidade_medida)}</span> (Mínimo: {formatQty(min, item.unidade_medida)})
                     </p>
                   </div>
                   <StatusBadge

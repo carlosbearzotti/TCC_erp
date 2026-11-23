@@ -1,7 +1,7 @@
 "use client";
 
 import { notify, askConfirm } from "@/components/ui/feedback";
-import { brl, formatDuration } from "@/lib/format"
+import { brl, formatDuration, orderStatusLabel } from "@/lib/format"
 import { apiErrorMessage } from "@/lib/errors"
 import { Dialog } from "@/components/ui/dialog"
 import React, { useState, useRef } from "react";
@@ -519,8 +519,8 @@ export default function EntregadorApp() {
                   <div key={ord.id} className="rounded-2xl border border-line bg-surface p-4 space-y-2 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-accent">Pedido #{ord.id}</span>
-                      <span className="rounded-md bg-success/20 px-2.5 py-0.5 text-xs font-bold text-success capitalize">
-                        • {ord.status}
+                      <span className="rounded-md bg-success/20 px-2.5 py-0.5 text-xs font-bold text-success">
+                        • {orderStatusLabel(ord.status)}
                       </span>
                     </div>
                     <p className="text-soft truncate text-xs">

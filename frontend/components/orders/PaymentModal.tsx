@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
-import { brl } from "@/lib/format"
+import { brl, paymentLabel } from "@/lib/format"
 import { apiErrorMessage } from "@/lib/errors"
 import { Dialog } from "@/components/ui/dialog"
 import {
@@ -137,8 +137,8 @@ export function PaymentModal({ order, onClose, onSuccess }: PaymentModalProps) {
               </div>
               <div className="flex justify-between text-soft">
                 <span>Forma de Pagamento:</span>
-                <span className="font-semibold capitalize text-accent">
-                  {successData.payment_method?.replace("_", " ")}
+                <span className="font-semibold text-accent">
+                  {paymentLabel(successData.payment_method)}
                 </span>
               </div>
               {successData.payment_method === "dinheiro" && (

@@ -1,7 +1,7 @@
 "use client";
 
 import { notify, askConfirm } from "@/components/ui/feedback";
-import { formatDuration } from "@/lib/format"
+import { formatDuration, formatQty } from "@/lib/format"
 import { apiErrorMessage } from "@/lib/errors"
 import { useState, useEffect, useRef } from "react";
 import useSWR from "swr";
@@ -214,7 +214,7 @@ export function Header() {
                         <div>
                           <p className="font-bold text-ink">Estoque Crítico: {item.nome}</p>
                           <p className="text-xs text-soft mt-0.5">
-                            Restam apenas <span className="text-danger font-bold">{item.quantidade_atual} {item.unidade_medida}</span> (Mínimo: {item.estoque_minimo} {item.unidade_medida}).
+                            Restam apenas <span className="text-danger font-bold">{formatQty(item.quantidade_atual, item.unidade_medida)}</span> (Mínimo: {formatQty(item.estoque_minimo, item.unidade_medida)}).
                           </p>
                         </div>
                       </Link>

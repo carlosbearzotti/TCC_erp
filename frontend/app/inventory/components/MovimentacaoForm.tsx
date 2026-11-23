@@ -1,5 +1,6 @@
 "use client"
 
+import { formatQty } from "@/lib/format"
 import { useState } from "react"
 import { apiErrorMessage } from "@/lib/errors"
 import { Dialog } from "@/components/ui/dialog"
@@ -79,7 +80,7 @@ export function MovimentacaoForm({ onClose, insumos }: MovimentacaoFormProps) {
             >
               {insumos.map((i) => (
                 <option key={i.id} value={i.id}>
-                  {i.nome} (Atual: {i.quantidade_atual} {i.unidade_medida})
+                  {i.nome} (Atual: {formatQty(i.quantidade_atual, i.unidade_medida)})
                 </option>
               ))}
             </select>
