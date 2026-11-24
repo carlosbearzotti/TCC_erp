@@ -27,7 +27,7 @@ O Frontend estará disponível em: `http://localhost:3000/`
 
 ## Demonstração
 
-O comando `seed_demo` cria 10 produtos com ficha técnica, 14 insumos (um deles abaixo do mínimo), os usuários de cada perfil e 4 pedidos em estados diferentes: um pago, um em preparo, um delivery pronto com entregador (PIN `2468`) e um pedido do app aguardando ser aceito.
+O comando `seed_demo` cria 10 produtos com ficha técnica, 15 insumos (um deles abaixo do mínimo), os usuários de cada perfil e 4 pedidos em estados diferentes: um pago, um em preparo, um delivery pronto com entregador (PIN `2468`) e um pedido do app aguardando ser aceito.
 
 | Perfil | Usuário | Tela inicial |
 |---|---|---|

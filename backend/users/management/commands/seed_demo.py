@@ -36,6 +36,7 @@ IMAGENS_DIR = Path(settings.BASE_DIR) / 'demo_imagens'
 # (nome, unidade, saldo, minimo)
 INSUMOS = [
     ('Pão de hambúrguer', 'UN', 60, 15),
+    ('Pão de forma (fatia)', 'UN', 80, 20),
     ('Hambúrguer bovino 120 g', 'UN', 50, 15),
     ('Queijo prato (fatia)', 'UN', 80, 20),
     ('Presunto (fatia)', 'UN', 60, 15),
@@ -59,7 +60,7 @@ PRODUTOS = [
      [('Pão de hambúrguer', 1), ('Hambúrguer bovino 120 g', 1), ('Queijo prato (fatia)', 1),
       ('Alface (folha)', 2), ('Tomate (rodela)', 2)]),
     ('Misto Quente', 'Lanches', '12.00', 'Pão, presunto e queijo na chapa.',
-     [('Pão de hambúrguer', 1), ('Presunto (fatia)', 2), ('Queijo prato (fatia)', 2)]),
+     [('Pão de forma (fatia)', 2), ('Presunto (fatia)', 2), ('Queijo prato (fatia)', 2)]),
     ('Pastel de Carne', 'Pasteis', '9.00', 'Carne moída temperada.',
      [('Massa de pastel', 1), ('Carne moída temperada', '0.080')]),
     ('Pastel de Queijo', 'Pasteis', '9.00', 'Muçarela derretida.',
