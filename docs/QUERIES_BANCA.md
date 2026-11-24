@@ -99,9 +99,21 @@ SELECT count(*) AS pedidos,
 FROM orders_pedido;
 ```
 
-## Integridade (opcional, para explicar as regras no banco)
+## 11. Integridade: quantas regras o banco garante
 ```sql
-SELECT conname AS regra, pg_get_constraintdef(oid) AS definicao
+SELECT CASE contype WHEN 'p' THEN 'Chave primária' WHEN 'f' THEN 'Chave estrangeira'
+                    WHEN 'u' THEN 'Unicidade' WHEN 'c' THEN 'Verificação (CHECK)' END AS tipo,
+       count(*) AS quantidade
 FROM pg_constraint
-WHERE conrelid = 'inventory_insumo'::regclass AND contype = 'c';
+WHERE connamespace = 'public'::regnamespace
+GROUP BY contype ORDER BY quantidade DESC;
+```
+
+## 12. Integridade: as regras de negócio no banco (unicidade e CHECK)
+```sql
+SELECT conrelid::regclass AS tabela, pg_get_constraintdef(oid) AS regra
+FROM pg_constraint
+WHERE connamespace = 'public'::regnamespace AND contype IN ('u', 'c')
+  AND conrelid::regclass::text !~ '^(auth_|django_|token_)'
+ORDER BY contype, tabela;
 ```
