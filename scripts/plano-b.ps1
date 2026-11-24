@@ -123,6 +123,7 @@ if (Test-Path $fotosKit) {
 New-Item -ItemType Directory -Force "infrastructure\caddy-extra" | Out-Null
 $snippet = "infrastructure\caddy-extra\pgweb.caddy"
 if (-not (Test-Path $snippet)) {
+    & docker pull -q caddy:2-alpine *> $null  # baixa antes, para a mensagem de download não poluir a saída
     $hash = (& docker run --rm caddy:2-alpine caddy hash-password --plaintext $envs["PGWEB_LOGIN_PASSWORD"]).Trim()
     if ($LASTEXITCODE -ne 0 -or -not $hash) { throw "Não foi possível gerar a senha do painel do banco." }
     $caddy = @"

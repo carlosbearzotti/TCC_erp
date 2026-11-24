@@ -41,6 +41,19 @@ O comando `seed_demo` cria 10 produtos com ficha técnica, 15 insumos (um deles 
 - Para voltar ao cenário inicial antes de uma apresentação: `docker compose exec backend python manage.py seed_demo --reset`. **Atenção:** apaga pedidos, financeiro, estoque, turnos e auditoria (usuários, permissões e configurações são mantidos).
 - Em produção (`docker-compose.prod.yml`) o comando funciona igual: `docker compose -f docker-compose.prod.yml exec backend python manage.py seed_demo`.
 
+## Plano B: sistema completo em outro computador
+
+Sobe a mesma stack do servidor de apresentação (Caddy, Next.js, Django, PostgreSQL e o painel do banco) em `http://localhost:8080`, com a demonstração já carregada.
+
+1. Instale o [Docker Desktop](https://www.docker.com/products/docker-desktop) e o Git.
+2. Clone o repositório: `git clone https://github.com/carlosbearzotti/TCC_erp.git` e entre na pasta.
+3. Opcional: copie para a raiz do repositório a pasta `plano-b` (fotos dos produtos e logo, fora do git).
+4. No PowerShell, na raiz do repositório:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts\plano-b.ps1
+   ```
+   O script cria o `.env` com senhas novas e monta as imagens (de 5 a 10 minutos na primeira vez), carrega a demonstração e abre o navegador. Rodar de novo só religa, sem apagar dados. `-Parar` desliga, e `-Porta 9000` troca a porta.
+
 ## Comandos Úteis (Docker)
 
 - Parar a aplicação: `docker compose down`
