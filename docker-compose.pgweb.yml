@@ -1,0 +1,17 @@
+# Painel web do banco (pgweb) somente leitura, para demonstração.
+# Uso: docker compose -f docker-compose.prod.yml -f docker-compose.pgweb.yml up -d
+# Requer no .env: PGWEB_DB_PASSWORD (usuário "leitura" no Postgres, somente SELECT)
+# e o arquivo infrastructure/caddy-extra/pgweb.caddy com o basic_auth (não versionado).
+services:
+  pgweb:
+    image: sosedoff/pgweb:0.16.2
+    restart: unless-stopped
+    command: ["pgweb", "--bind=0.0.0.0", "--listen=8081", "--prefix=db", "--readonly", "--lock-session", "--skip-open"]
+    environment:
+      PGWEB_DATABASE_URL: postgres://leitura:${PGWEB_DB_PASSWORD:?defina PGWEB_DB_PASSWORD no .env}@db:5432/${POSTGRES_DB:-tcc_erp}?sslmode=disable
+    depends_on:
+      - db
+
+  caddy:
+    volumes:
+      - ./infrastructure/caddy-extra:/etc/caddy/extra:ro

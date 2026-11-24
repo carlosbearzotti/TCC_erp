@@ -20,6 +20,9 @@
 		max_size 12MB
 	}
 
+	# Rotas opcionais (ex.: painel do banco do docker-compose.pgweb.yml); sem arquivos, nada muda
+	import /etc/caddy/extra/*.caddy
+
 	# Uploads servidos direto do volume compartilhado
 	handle /media/* {
 		root * /srv
