@@ -30,6 +30,15 @@ class Perfil(models.Model):
         default=False,
         verbose_name='disponível / online',
     )
+    # Dados de contato e endereço padrão (preenchidos em "Minha conta" e sugeridos no checkout)
+    telefone = models.CharField(max_length=20, blank=True, default='')
+    cep = models.CharField(max_length=9, blank=True, default='')
+    logradouro = models.CharField(max_length=255, blank=True, default='')
+    numero = models.CharField(max_length=20, blank=True, default='')
+    complemento = models.CharField(max_length=100, blank=True, default='')
+    bairro = models.CharField(max_length=100, blank=True, default='')
+    cidade = models.CharField(max_length=100, blank=True, default='')
+    uf = models.CharField(max_length=2, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -10,7 +10,13 @@ from .models import Perfil, Permissao, RolePermissao
 from .permissions import IsAdministrador, tem_permissao
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import MeSerializer, RegisterSerializer, FuncionarioSerializer
+from .serializers import (
+    AlterarSenhaSerializer,
+    FuncionarioSerializer,
+    MeSerializer,
+    MinhaContaSerializer,
+    RegisterSerializer,
+)
 
 User = get_user_model()
 
@@ -34,12 +40,33 @@ class LoginView(TokenObtainPairView):
 
 
 class MeView(generics.RetrieveAPIView):
-    """Returns the authenticated user and its access profile."""
+    """GET: usuário autenticado e seu perfil. PATCH: edita os próprios dados (Minha conta)."""
 
     serializer_class = MeSerializer
 
     def get_object(self):
         return self.request.user
+
+    def patch(self, request):
+        serializer = MinhaContaSerializer(request.user, data=request.data, partial=True, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        request.user.refresh_from_db()
+        return Response(MeSerializer(request.user).data)
+
+
+class AlterarSenhaView(APIView):
+    """Troca da própria senha, exigindo a senha atual."""
+
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'auth'
+
+    def post(self, request):
+        serializer = AlterarSenhaSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        request.user.set_password(serializer.validated_data['nova_senha'])
+        request.user.save(update_fields=['password'])
+        return Response({'detail': 'Senha alterada com sucesso.'})
 
 
 class FuncionarioViewSet(viewsets.ModelViewSet):

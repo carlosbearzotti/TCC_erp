@@ -3,7 +3,8 @@
 import { orderStatusLabel } from "@/lib/format"
 import { notify, askConfirm } from "@/components/ui/feedback";
 import { Dialog } from "@/components/ui/dialog"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { MinhaConta } from "../../components/cliente/MinhaConta"
 import useSWR, { mutate } from "swr"
 import api, { fetcher, mediaUrl } from "../../services/api"
 import { useBranding } from "../../hooks/useBranding"
@@ -49,7 +50,7 @@ interface Categoria {
 }
 
 export default function ConsumerApp() {
-  const { isAuthenticated, login, user, logout } = useAuth()
+  const { isAuthenticated, login, user, logout, refreshUser } = useAuth()
   const { nome: brandName, data: loja } = useBranding()
   const [activeTab, setActiveTab] = useState<"home" | "orders" | "cart" | "profile">("home")
   const [selectedCatId, setSelectedCatId] = useState<number | null>(null)
@@ -152,6 +153,14 @@ export default function ConsumerApp() {
   const [uf, setUf] = useState("")
   const [loadingCep, setLoadingCep] = useState(false)
 
+  // Endereço salvo em "Minha conta" preenche o checkout (sem sobrescrever o que já foi digitado)
+  useEffect(() => {
+    const salvo = user?.endereco
+    if (!salvo?.logradouro || cep || logradouro) return
+    setCep(salvo.cep); setLogradouro(salvo.logradouro); setNumero(salvo.numero)
+    setComplemento(salvo.complemento); setBairro(salvo.bairro); setCidade(salvo.cidade); setUf(salvo.uf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.endereco])
 
   const handleBuscarCep = async (cepInput: string) => {
     const raw = cepInput.replace(/\D/g, "")
@@ -266,6 +275,13 @@ export default function ConsumerApp() {
       mutate("/inventory/insumos/")
       setCheckoutStep("success")
       setCartItems([])
+
+      // Primeiro pedido de entrega: guarda o endereço na conta para os próximos (falha aqui não afeta o pedido)
+      if (deliveryType === "entrega" && !user?.endereco?.logradouro) {
+        api.patch("/users/me/", { cep, logradouro, numero, complemento, bairro, cidade, uf })
+          .then(() => refreshUser())
+          .catch(() => {})
+      }
     } catch (err: any) {
       notify("Erro ao enviar pedido. Verifique os dados.")
     } finally {
@@ -878,6 +894,8 @@ export default function ConsumerApp() {
 
               {isAuthenticated ? (
                 <>
+                  <MinhaConta />
+
                   {(loja?.telefone || loja?.endereco) && (
                     <div className="border-y border-line py-3 text-base">
                       <p className="font-semibold text-ink">Fale com a loja</p>

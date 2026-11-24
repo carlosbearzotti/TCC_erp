@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
+    AlterarSenhaView,
     LoginView,
     MeView,
     RegisterView,
@@ -20,6 +21,7 @@ urlpatterns = [
     path('refresh/', TokenRefreshView.as_view(), name='token_refresh_alt'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('me/', MeView.as_view(), name='me'),
+    path('me/senha/', AlterarSenhaView.as_view(), name='alterar_senha'),
     path('disponibilidade/', DisponibilidadeView.as_view(), name='disponibilidade'),
     path('rbac/matrix/', RBACMatrixView.as_view(), name='rbac_matrix'),
     path('rbac/toggle/', RBACMatrixView.as_view(), name='rbac_toggle'),

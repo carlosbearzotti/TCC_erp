@@ -6,6 +6,61 @@ from rest_framework import serializers
 
 User = get_user_model()
 
+ENDERECO_CAMPOS = ('cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'uf')
+
+
+class MinhaContaSerializer(serializers.Serializer):
+    """Edição dos próprios dados (qualquer perfil): nome, e-mail, telefone e endereço padrão."""
+
+    first_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    telefone = serializers.RegexField(r'^[\d\s()+-]{0,20}$', required=False, allow_blank=True,
+                                      error_messages={'invalid': 'Telefone inválido.'})
+    cep = serializers.RegexField(r'^(\d{5}-?\d{3})?$', required=False, allow_blank=True,
+                                 error_messages={'invalid': 'CEP inválido.'})
+    logradouro = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    numero = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    complemento = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    bairro = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    cidade = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    uf = serializers.RegexField(r'^([A-Za-z]{2})?$', required=False, allow_blank=True,
+                                error_messages={'invalid': 'UF deve ter 2 letras.'})
+
+    def validate_email(self, value):
+        user = self.context['request'].user
+        if value and User.objects.filter(email__iexact=value).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError('Este e-mail já está em uso.')
+        return value
+
+    def update(self, user, data):
+        for campo in ('first_name', 'last_name', 'email'):
+            if campo in data:
+                setattr(user, campo, data[campo].strip())
+        user.save()
+        from .models import Perfil
+        perfil, _ = Perfil.objects.get_or_create(user=user)
+        for campo in ('telefone',) + ENDERECO_CAMPOS:
+            if campo in data:
+                valor = data[campo].strip()
+                setattr(perfil, campo, valor.upper() if campo == 'uf' else valor)
+        perfil.save()
+        return user
+
+
+class AlterarSenhaSerializer(serializers.Serializer):
+    senha_atual = serializers.CharField(write_only=True)
+    nova_senha = serializers.CharField(write_only=True, min_length=8)
+
+    def validate_senha_atual(self, value):
+        if not self.context['request'].user.check_password(value):
+            raise serializers.ValidationError('Senha atual incorreta.')
+        return value
+
+    def validate_nova_senha(self, value):
+        validate_password(value, self.context['request'].user)
+        return value
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
@@ -31,10 +86,20 @@ class MeSerializer(serializers.ModelSerializer):
     is_online = serializers.BooleanField(source='perfil.is_online', read_only=True)
     permissions = serializers.SerializerMethodField()
 
+    telefone = serializers.CharField(source='perfil.telefone', read_only=True)
+    endereco = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'role', 'is_online', 'permissions')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'role', 'is_online', 'permissions',
+                  'telefone', 'endereco', 'date_joined')
         read_only_fields = fields
+
+    def get_endereco(self, obj):
+        perfil = getattr(obj, 'perfil', None)
+        if not perfil:
+            return None
+        return {campo: getattr(perfil, campo) for campo in ENDERECO_CAMPOS}
 
     def get_role(self, obj):
         if hasattr(obj, 'perfil') and obj.perfil and obj.perfil.role == 'superadmin':

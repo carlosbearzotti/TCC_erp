@@ -17,6 +17,19 @@ export interface User {
   role: Role;
   is_online?: boolean;
   permissions: string[];
+  telefone?: string;
+  endereco?: EnderecoSalvo | null;
+  date_joined?: string;
+}
+
+export interface EnderecoSalvo {
+  cep: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  cidade: string;
+  uf: string;
 }
 
 interface AuthContextType {
